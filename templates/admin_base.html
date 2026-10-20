@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CV Studio{% endblock %}</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body data-page="{{ page }}" data-auth="{{ auth_required }}"{% block body_attrs %}{% endblock %}>
+  <header class="topbar">
+    <a class="brand" href="/admin">
+      <img src="/static/favicon.svg" alt="" width="26" height="26">
+      <span>CV Studio</span>
+    </a>
+    <nav>
+      <a href="/admin"{% if page == "cvs" %} aria-current="page"{% endif %}>CVs</a>
+      <a href="/admin/themes"{% if page == "themes" %} aria-current="page"{% endif %}>Themes</a>
+    </nav>
+    <div class="topbar-actions">
+      {% block actions %}{% endblock %}
+      {%- if auth_required %}<button class="btn ghost small" type="button" data-action="logout" hidden>Sign out</button>{% endif %}
+    </div>
+  </header>
+
+  {% block content %}{% endblock %}
+
+  <dialog id="login-dialog" class="dialog">
+    <form method="dialog" id="login-form">
+      <h2>Sign in</h2>
+      <p class="muted">Enter the API token configured with <code>CV_API_TOKEN</code>.</p>
+      <label class="field">
+        <span>API token</span>
+        <input type="password" name="token" autocomplete="current-password" required autofocus>
+      </label>
+      <p class="form-error" hidden></p>
+      <div class="dialog-actions">
+        <button class="btn primary" type="submit">Sign in</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+  <script src="/static/admin.js"></script>
+</body>
+</html>

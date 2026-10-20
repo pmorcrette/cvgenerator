@@ -1,0 +1,46 @@
+{% extends "admin_base.html" %}
+{% block title %}Your CVs · CV Studio{% endblock %}
+{% block actions %}<button class="btn primary" type="button" data-action="new-cv">New CV</button>{% endblock %}
+{% block content %}
+<main class="page">
+  <section class="page-head">
+    <div>
+      <h1>Your CVs</h1>
+      <p class="muted">Write once, restyle in a click, share a link or print to PDF.</p>
+    </div>
+  </section>
+
+  <div id="cv-grid" class="card-grid" aria-busy="true">
+    <div class="card skeleton"></div><div class="card skeleton"></div><div class="card skeleton"></div>
+  </div>
+
+  <section class="panel agent-panel">
+    <div>
+      <h2>Connect an AI agent</h2>
+      <p class="muted">CV Studio ships an MCP server. Point any MCP client to the endpoint below to let an agent create, tailor and restyle your CVs.</p>
+    </div>
+    <div class="agent-config">
+      <label class="field">
+        <span>Streamable HTTP endpoint</span>
+        <div class="copy-row"><input id="mcp-url" readonly><button class="btn small" type="button" data-copy="#mcp-url">Copy</button></div>
+      </label>
+      <pre id="mcp-snippet" class="code"></pre>
+    </div>
+  </section>
+</main>
+
+<dialog id="new-cv-dialog" class="dialog">
+  <form method="dialog" id="new-cv-form">
+    <h2>New CV</h2>
+    <label class="field"><span>Full name</span><input name="name" required placeholder="Jane Doe" autofocus></label>
+    <label class="field"><span>Headline</span><input name="label" placeholder="Senior Software Engineer"></label>
+    <label class="field"><span>Theme</span><select name="theme" data-theme-select></select></label>
+    <label class="checkbox"><input type="checkbox" name="example"> Start from the example content</label>
+    <p class="form-error" hidden></p>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit">Create</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "admin_base.html" %}
+{% block title %}Edit {{ id }} · CV Studio{% endblock %}
+{% block body_attrs %} data-cv="{{ id }}" class="editor-page"{% endblock %}
+{% block actions %}
+<span id="save-status" class="status" data-state="idle">Loading…</span>
+<select id="theme-select" class="select small" aria-label="Theme" data-theme-select></select>
+<a class="btn ghost small" href="/cv/{{ id }}" target="_blank" rel="noopener">View</a>
+<button class="btn primary small" id="save-btn" type="button" disabled>Save</button>
+{% endblock %}
+{% block content %}
+<main class="editor">
+  <section class="editor-pane">
+    <div class="pane-head">
+      <div class="tabs" role="tablist">
+        {%- for s in ["basics", "work", "education", "skills", "projects", "languages", "more"] %}
+        <button type="button" class="tab" data-jump="{{ s }}">{{ s | capitalize }}</button>
+        {%- endfor %}
+      </div>
+      <button class="btn ghost small" type="button" id="format-btn" title="Format JSON (Shift+Alt+F)">Format</button>
+    </div>
+    <textarea id="json-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="CV content (JSON Resume)"></textarea>
+    <p id="editor-error" class="editor-error" hidden></p>
+    <p class="pane-foot muted">Content follows the <a href="https://jsonresume.org/schema" target="_blank" rel="noopener">JSON Resume</a> schema. <kbd>Ctrl</kbd>+<kbd>S</kbd> to save.</p>
+  </section>
+  <section class="preview-pane">
+    <iframe id="preview" title="Live preview"></iframe>
+  </section>
+</main>
+{% endblock %}

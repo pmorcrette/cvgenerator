@@ -1,0 +1,51 @@
+{% extends "admin_base.html" %}
+{% block title %}Themes · CV Studio{% endblock %}
+{% block actions %}<button class="btn primary" type="button" data-action="new-theme">New theme</button>{% endblock %}
+{% block content %}
+<main class="page">
+  <section class="page-head">
+    <div>
+      <h1>Themes</h1>
+      <p class="muted">Pick a built-in theme or design your own: colors, fonts, layout and custom CSS.</p>
+    </div>
+  </section>
+  <div id="theme-grid" class="card-grid" aria-busy="true"></div>
+</main>
+
+<dialog id="theme-dialog" class="dialog wide">
+  <form method="dialog" id="theme-form" class="theme-editor">
+    <div class="theme-fields">
+      <h2 id="theme-dialog-title">Theme</h2>
+      <div class="grid-2">
+        <label class="field"><span>Name</span><input name="name" required></label>
+        <label class="field"><span>Id</span><input name="id" required pattern="[a-z0-9]+(-[a-z0-9]+)*" title="lowercase letters, digits and dashes"></label>
+      </div>
+      <label class="field"><span>Description</span><input name="description"></label>
+      <div class="grid-2">
+        <label class="field"><span>Layout</span>
+          <select name="layout"><option value="sidebar">Sidebar</option><option value="classic">Classic</option><option value="banner">Banner</option></select>
+        </label>
+        <label class="field"><span>Corner radius</span><input name="radius" placeholder="10px"></label>
+      </div>
+      <fieldset class="colors">
+        <legend>Colors</legend>
+        {%- for key, label in [["background", "Page"], ["surface", "Sheet"], ["sidebar", "Sidebar / band"], ["sidebarText", "Sidebar text"], ["text", "Text"], ["muted", "Muted text"], ["accent", "Accent"], ["accentSoft", "Accent tint"], ["border", "Borders"]] %}
+        <label class="color-field"><input type="color" name="colors.{{ key }}"><span>{{ label }}</span></label>
+        {%- endfor %}
+      </fieldset>
+      <label class="field"><span>Heading font (CSS font-family)</span><input name="fonts.heading"></label>
+      <label class="field"><span>Body font (CSS font-family)</span><input name="fonts.body"></label>
+      <label class="field"><span>Font stylesheet URL (optional)</span><input name="fonts.importUrl" type="url" placeholder="https://fonts.googleapis.com/css2?family=…"></label>
+      <label class="field"><span>Custom CSS</span><textarea name="customCss" rows="5" class="mono" placeholder=".hero h1 { letter-spacing: 0; }"></textarea></label>
+      <p class="form-error" hidden></p>
+      <div class="dialog-actions">
+        <button class="btn danger ghost" type="button" data-action="delete-theme" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button class="btn ghost" type="button" data-close>Close</button>
+        <button class="btn primary" type="submit">Save theme</button>
+      </div>
+    </div>
+    <div class="theme-preview"><iframe id="theme-preview" title="Theme preview"></iframe></div>
+  </form>
+</dialog>
+{% endblock %}

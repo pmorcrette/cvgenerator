@@ -1,0 +1,277 @@
+{%- macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+{%- if name == "mail" %}<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+{%- elif name == "phone" %}<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>
+{%- elif name == "pin" %}<path d="M12 21s-7-5.6-7-11a7 7 0 0 1 14 0c0 5.4-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>
+{%- elif name == "github" %}<path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/>
+{%- elif name == "linkedin" %}<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v5M8 8v.01M12 16v-5M16 16v-3a2 2 0 0 0-4 0"/>
+{%- elif name == "calendar" %}<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>
+{%- else %}<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+{%- endif %}</svg>
+{%- endmacro -%}
+
+{%- macro period(item, key="startDate") -%}
+{%- set start = item[key] | date -%}
+{%- set end = item.endDate | date -%}
+{%- if start and end %}{{ start }} – {{ end }}{% elif start %}{{ start }} – Present{% elif end %}{{ end }}{% endif -%}
+{%- endmacro -%}
+
+{%- macro contact(b) -%}
+<ul class="contact">
+  {%- if b.email %}<li>{{ icon("mail") }}<a href="mailto:{{ b.email }}">{{ b.email }}</a></li>{% endif %}
+  {%- if b.phone %}<li>{{ icon("phone") }}<a href="tel:{{ b.phone | replace(' ', '') }}">{{ b.phone }}</a></li>{% endif %}
+  {%- if b.location and (b.location.city or b.location.region or b.location.countryCode) %}
+  <li>{{ icon("pin") }}<span>{{ [b.location.city, b.location.region, b.location.countryCode] | select | join(", ") }}</span></li>
+  {%- endif %}
+  {%- if b.url %}<li>{{ icon("globe") }}<a href="{{ b.url | safe_url }}">{{ b.url | pretty_url }}</a></li>{% endif %}
+  {%- for p in b.profiles or [] %}
+  {%- set net = (p.network or "") | lower %}
+  <li>{{ icon(net if net in ["github", "linkedin"] else "globe") }}
+    {%- if p.url %}<a href="{{ p.url | safe_url }}">{{ p.username or (p.url | pretty_url) }}</a>{% else %}<span>{{ p.network }}{% if p.username %}: {{ p.username }}{% endif %}</span>{% endif %}</li>
+  {%- endfor %}
+</ul>
+{%- endmacro -%}
+
+{%- macro chips(words) -%}
+{%- if words %}<ul class="chips">{% for w in words %}<li>{{ w }}</li>{% endfor %}</ul>{% endif -%}
+{%- endmacro -%}
+
+{%- set b = cv.basics or {} -%}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ b.name or "Curriculum Vitae" }}{% if b.label %} · {{ b.label }}{% endif %}</title>
+  {%- if b.summary %}<meta name="description" content="{{ b.summary | paragraphs | first }}">{% endif %}
+  <meta name="generator" content="cvgenerator">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  {%- if theme.fonts.importUrl %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="{{ theme.fonts.importUrl }}">
+  {%- endif %}
+  <link rel="stylesheet" href="/static/cv.css">
+  <style>{{ theme_css | safe }}</style>
+</head>
+<body class="layout-{{ theme.layout }}{% if options.embed %} embed{% endif %}">
+{%- if not options.embed %}
+<nav class="toolbar" aria-label="CV tools">
+  {%- if options.themes %}
+  {#- A plain GET form: no URL handling in an inline handler, where `URL`
+      would resolve to `document.URL` instead of the URL constructor. #}
+  <form class="toolbar-theme" method="get" action="/cv/{{ id }}">
+    <label>
+      <span class="sr-only">Theme</span>
+      <select name="theme" onchange="this.form.submit()">
+        {%- for t in options.themes %}<option value="{{ t.id }}"{% if t.id == theme.id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <noscript><button class="toolbar-btn" type="submit">Apply</button></noscript>
+  </form>
+  {%- endif %}
+  <a class="toolbar-btn" href="/cv/{{ id }}/resume.json" download="{{ id }}.json" title="Download JSON Resume">JSON</a>
+  <button class="toolbar-btn primary" type="button" onclick="window.print()" title="Print or save as PDF">Save as PDF</button>
+</nav>
+{%- endif %}
+
+<article class="sheet">
+  <header class="hero">
+    <div class="avatar">
+      {%- if b.image %}<img src="{{ b.image | safe_url }}" alt="{{ b.name }}">{% else %}<span>{{ b.name | initials }}</span>{% endif %}
+    </div>
+    <div class="identity">
+      <h1>{{ b.name or "Your Name" }}</h1>
+      {%- if b.label %}<p class="headline">{{ b.label }}</p>{% endif %}
+      <div class="hero-contact">{{ contact(b) }}</div>
+    </div>
+  </header>
+
+  <div class="columns">
+    <aside class="side">
+      <section class="side-contact">
+        <h2>Contact</h2>
+        {{ contact(b) }}
+      </section>
+
+      {%- if cv.skills %}
+      <section class="skills">
+        <h2>Skills</h2>
+        {%- for s in cv.skills %}
+        <div class="skill">
+          <div class="skill-head"><strong>{{ s.name }}</strong>{% if s.level %}<span>{{ s.level }}</span>{% endif %}</div>
+          {%- set pct = s.level | level_percent %}
+          {%- if pct %}<div class="meter" role="img" aria-label="{{ s.level }}"><span style="width: {{ pct }}%"></span></div>{% endif %}
+          {{ chips(s.keywords) }}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.languages %}
+      <section class="languages">
+        <h2>Languages</h2>
+        <ul class="plain">
+          {%- for l in cv.languages %}
+          <li><strong>{{ l.language }}</strong>{% if l.fluency %}<span>{{ l.fluency }}</span>{% endif %}</li>
+          {%- endfor %}
+        </ul>
+      </section>
+      {%- endif %}
+
+      {%- if cv.certificates %}
+      <section class="certificates">
+        <h2>Certificates</h2>
+        <ul class="plain stacked">
+          {%- for c in cv.certificates %}
+          <li>
+            <strong>{% if c.url %}<a href="{{ c.url | safe_url }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}</strong>
+            <span>{{ [c.issuer, c.date | date] | select | join(" · ") }}</span>
+          </li>
+          {%- endfor %}
+        </ul>
+      </section>
+      {%- endif %}
+
+      {%- if cv.interests %}
+      <section class="interests">
+        <h2>Interests</h2>
+        {%- for i in cv.interests %}
+        <div class="interest"><strong>{{ i.name }}</strong>{{ chips(i.keywords) }}</div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+    </aside>
+
+    <main class="main">
+      {%- if b.summary %}
+      <section class="about">
+        <h2>Profile</h2>
+        {%- for p in b.summary | paragraphs %}<p>{{ p }}</p>{% endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.work %}
+      <section class="timeline">
+        <h2>Experience</h2>
+        {%- for w in cv.work %}
+        <div class="entry">
+          <div class="entry-head">
+            <div>
+              <h3>{{ w.position or w.name }}</h3>
+              {%- if w.position and w.name %}
+              <p class="org">{% if w.url %}<a href="{{ w.url | safe_url }}">{{ w.name }}</a>{% else %}{{ w.name }}{% endif %}{% if w.location %}<span class="dot">{{ w.location }}</span>{% endif %}</p>
+              {%- endif %}
+            </div>
+            <span class="when">{{ period(w) }}</span>
+          </div>
+          {%- for p in w.summary | paragraphs %}<p>{{ p }}</p>{% endfor %}
+          {%- if w.highlights %}<ul class="highlights">{% for h in w.highlights %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.projects %}
+      <section class="timeline">
+        <h2>Projects</h2>
+        {%- for p in cv.projects %}
+        <div class="entry">
+          <div class="entry-head">
+            <div>
+              <h3>{% if p.url %}<a href="{{ p.url | safe_url }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>
+              {%- if p.roles %}<p class="org">{{ p.roles | join(", ") }}</p>{% endif %}
+            </div>
+            <span class="when">{{ period(p) }}</span>
+          </div>
+          {%- for d in p.description | paragraphs %}<p>{{ d }}</p>{% endfor %}
+          {%- if p.highlights %}<ul class="highlights">{% for h in p.highlights %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+          {{ chips(p.keywords) }}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.education %}
+      <section class="timeline">
+        <h2>Education</h2>
+        {%- for e in cv.education %}
+        <div class="entry">
+          <div class="entry-head">
+            <div>
+              <h3>{{ [e.studyType, e.area] | select | join(", ") or e.institution }}</h3>
+              {%- if e.studyType or e.area %}
+              <p class="org">{% if e.url %}<a href="{{ e.url | safe_url }}">{{ e.institution }}</a>{% else %}{{ e.institution }}{% endif %}{% if e.score %}<span class="dot">{{ e.score }}</span>{% endif %}</p>
+              {%- endif %}
+            </div>
+            <span class="when">{{ period(e) }}</span>
+          </div>
+          {{ chips(e.courses) }}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.volunteer %}
+      <section class="timeline">
+        <h2>Volunteering</h2>
+        {%- for v in cv.volunteer %}
+        <div class="entry">
+          <div class="entry-head">
+            <div>
+              <h3>{{ v.position or v.organization }}</h3>
+              {%- if v.position and v.organization %}<p class="org">{% if v.url %}<a href="{{ v.url | safe_url }}">{{ v.organization }}</a>{% else %}{{ v.organization }}{% endif %}</p>{% endif %}
+            </div>
+            <span class="when">{{ period(v) }}</span>
+          </div>
+          {%- for p in v.summary | paragraphs %}<p>{{ p }}</p>{% endfor %}
+          {%- if v.highlights %}<ul class="highlights">{% for h in v.highlights %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.awards %}
+      <section class="compact">
+        <h2>Awards</h2>
+        {%- for a in cv.awards %}
+        <div class="entry">
+          <div class="entry-head">
+            <div><h3>{{ a.title }}</h3>{% if a.awarder %}<p class="org">{{ a.awarder }}</p>{% endif %}</div>
+            <span class="when">{{ a.date | date }}</span>
+          </div>
+          {%- for p in a.summary | paragraphs %}<p>{{ p }}</p>{% endfor %}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.publications %}
+      <section class="compact">
+        <h2>Publications</h2>
+        {%- for p in cv.publications %}
+        <div class="entry">
+          <div class="entry-head">
+            <div><h3>{% if p.url %}<a href="{{ p.url | safe_url }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</h3>{% if p.publisher %}<p class="org">{{ p.publisher }}</p>{% endif %}</div>
+            <span class="when">{{ p.releaseDate | date }}</span>
+          </div>
+          {%- for s in p.summary | paragraphs %}<p>{{ s }}</p>{% endfor %}
+        </div>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+
+      {%- if cv.references %}
+      <section class="references">
+        <h2>References</h2>
+        {%- for r in cv.references %}
+        <blockquote>{% for p in r.reference | paragraphs %}<p>{{ p }}</p>{% endfor %}<cite>{{ r.name }}</cite></blockquote>
+        {%- endfor %}
+      </section>
+      {%- endif %}
+    </main>
+  </div>
+  <footer class="sheet-footer">Updated {{ updated_at }}</footer>
+</article>
+</body>
+</html>

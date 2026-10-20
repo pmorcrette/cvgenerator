@@ -1,0 +1,6 @@
+target
+data
+.git
+*.md
+!README.md
+docker-compose.yml
