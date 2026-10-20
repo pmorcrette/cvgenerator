@@ -44,6 +44,20 @@ docker build -t cvgenerator .
 docker run -d -p 8080:8080 -v cv-data:/data -e CV_API_TOKEN=change-me cvgenerator
 ```
 
+### Standalone binary
+
+Every [release](https://github.com/pmorcrette/cvgenerator/releases) ships a single self-contained binary
+(templates and assets are embedded) for Linux (x86_64 and arm64, static), macOS (Intel and Apple Silicon)
+and Windows:
+
+```sh
+curl -LO https://github.com/pmorcrette/cvgenerator/releases/download/v0.1.0/cvgenerator-v0.1.0-x86_64-unknown-linux-musl.tar.gz
+tar xzf cvgenerator-v0.1.0-x86_64-unknown-linux-musl.tar.gz
+CV_API_TOKEN=change-me ./cvgenerator-v0.1.0-x86_64-unknown-linux-musl/cvgenerator --data-dir ./data
+```
+
+Each archive comes with a `.sha256` checksum file.
+
 ## Configuration
 
 Every option is an environment variable (or the matching `--flag`, see `cvgenerator --help`).
@@ -208,6 +222,21 @@ src/
 templates/     CV page and admin UI templates
 static/        CSS, admin JavaScript, favicon
 ```
+
+### Releasing
+
+Releases are built and published by the [Release workflow](.github/workflows/release.yml) when a version tag is
+pushed on a commit of `master`. The tag must match the version in `Cargo.toml`:
+
+```sh
+# bump `version` in Cargo.toml, merge to master, then:
+git checkout master && git pull
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The workflow runs the tests, builds the binaries for every platform and publishes a GitHub release with the
+archives, their checksums and generated release notes.
 
 ## License
 
