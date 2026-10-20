@@ -29,8 +29,8 @@ jobs:
       - name: Tag must match the Cargo.toml version
         run: |
           version=$(grep -m1 '^version' Cargo.toml | cut -d '"' -f2)
-          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version (expected v$version)"
+          if [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version (expected $version)"
             exit 1
           fi
 
