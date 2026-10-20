@@ -1,0 +1,2 @@
+//! Host beautiful, themeable CVs and manage them through a web UI, a REST API
+//! or the Model Context Protocol.
