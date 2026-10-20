@@ -4,7 +4,7 @@ name: Release
 # commit that belongs to master.
 on:
   push:
-    tags: ["v*"]
+    tags: ["*.*.*"]
 
 env:
   CARGO_TERM_COLOR: always
