@@ -1,0 +1,89 @@
+{
+  "basics": {
+    "name": "Jane Doe",
+    "label": "Senior Software Engineer",
+    "email": "jane.doe@example.com",
+    "phone": "+33 6 12 34 56 78",
+    "url": "https://janedoe.dev",
+    "summary": "Backend engineer with 9 years of experience designing reliable, observable distributed systems. I love turning fuzzy problems into simple, well-tested software and helping teams grow.\n\nCurrently focused on Rust, event-driven architectures and developer tooling.",
+    "location": { "city": "Lyon", "region": "Auvergne-Rhône-Alpes", "countryCode": "FR" },
+    "profiles": [
+      { "network": "GitHub", "username": "janedoe", "url": "https://github.com/janedoe" },
+      { "network": "LinkedIn", "username": "jane-doe", "url": "https://www.linkedin.com/in/jane-doe" }
+    ]
+  },
+  "work": [
+    {
+      "name": "Nimbus Analytics",
+      "position": "Senior Software Engineer",
+      "location": "Lyon, France",
+      "url": "https://nimbus.example.com",
+      "startDate": "2021-03",
+      "summary": "Tech lead of the ingestion platform processing 4 billion events per day.",
+      "highlights": [
+        "Rewrote the ingestion pipeline in Rust, cutting p99 latency by 70% and infrastructure costs by 40%.",
+        "Introduced tracing and SLO-based alerting across 30 services.",
+        "Mentored 5 engineers, two of them promoted to senior."
+      ]
+    },
+    {
+      "name": "Paylink",
+      "position": "Software Engineer",
+      "location": "Paris, France",
+      "startDate": "2017-09",
+      "endDate": "2021-02",
+      "summary": "Payments team, building the card authorization services.",
+      "highlights": [
+        "Designed an idempotent payment API used by 2,000+ merchants.",
+        "Led the migration from a monolith to 12 services with zero downtime."
+      ]
+    },
+    {
+      "name": "Startup Studio",
+      "position": "Junior Developer",
+      "startDate": "2015-06",
+      "endDate": "2017-08",
+      "highlights": ["Shipped 6 MVPs for early-stage startups in Python and TypeScript."]
+    }
+  ],
+  "education": [
+    {
+      "institution": "INSA Lyon",
+      "area": "Computer Science",
+      "studyType": "Master's degree",
+      "startDate": "2010-09",
+      "endDate": "2015-06",
+      "courses": ["Distributed systems", "Compilers", "Machine learning"]
+    }
+  ],
+  "skills": [
+    { "name": "Rust", "level": "Expert", "keywords": ["Tokio", "Axum", "Serde"] },
+    { "name": "Distributed systems", "level": "Advanced", "keywords": ["Kafka", "gRPC", "PostgreSQL"] },
+    { "name": "Cloud & DevOps", "level": "Advanced", "keywords": ["Kubernetes", "Terraform", "Docker"] },
+    { "name": "TypeScript", "level": "Intermediate", "keywords": ["React", "Node.js"] }
+  ],
+  "languages": [
+    { "language": "French", "fluency": "Native" },
+    { "language": "English", "fluency": "Fluent" },
+    { "language": "Spanish", "fluency": "Intermediate" }
+  ],
+  "projects": [
+    {
+      "name": "tracekit",
+      "description": "Open-source toolkit to correlate logs, metrics and traces in Rust services.",
+      "highlights": ["1.8k GitHub stars", "Used in production by 3 companies"],
+      "keywords": ["Rust", "OpenTelemetry"],
+      "url": "https://github.com/janedoe/tracekit"
+    }
+  ],
+  "certificates": [
+    { "name": "Certified Kubernetes Administrator", "issuer": "CNCF", "date": "2022-05" }
+  ],
+  "awards": [
+    { "title": "Best talk", "awarder": "RustFest", "date": "2023-11", "summary": "Zero-copy parsing at 4 billion events a day." }
+  ],
+  "interests": [
+    { "name": "Climbing", "keywords": ["Bouldering", "Alpinism"] },
+    { "name": "Open source", "keywords": ["Rust", "Observability"] }
+  ]
+}

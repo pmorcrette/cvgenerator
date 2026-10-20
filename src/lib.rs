@@ -5,3 +5,4 @@ pub mod model;
 pub mod theme;
 pub mod error;
 pub mod storage;
+pub mod render;
