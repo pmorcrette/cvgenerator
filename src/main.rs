@@ -9,6 +9,7 @@ use cvgenerator::web::{AppState, example_resume, router};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    // Logs go to stderr: stdout carries the MCP protocol in stdio mode.
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| "info,tower_http=info".into()),
@@ -26,10 +27,11 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState::new(store, config.clone());
 
     match cli.command.unwrap_or(Command::Serve) {
+        Command::Mcp => cvgenerator::mcp::run_stdio(state).await,
         Command::Serve => {
             if config.api_token().is_none() {
                 tracing::warn!(
-                    "CV_API_TOKEN is not set: the admin UI and REST API are open to anyone"
+                    "CV_API_TOKEN is not set: the admin UI, REST API and MCP endpoint are open to anyone"
                 );
             }
             let listener = tokio::net::TcpListener::bind(config.bind)

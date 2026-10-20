@@ -6,7 +6,7 @@ use clap::{Args, Parser, Subcommand};
 #[derive(Debug, Parser)]
 #[command(
     version,
-    about = "Host beautiful, themeable CVs and manage them through a REST API"
+    about = "Host beautiful, themeable CVs and manage them through a REST API or MCP"
 )]
 pub struct Cli {
     #[command(flatten)]
@@ -17,8 +17,10 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Run the web server (default): CV pages, admin UI and REST API.
+    /// Run the web server (default): CV pages, admin UI, REST API and MCP over HTTP.
     Serve,
+    /// Run the MCP server over stdio, for local AI agents (Claude Desktop, IDEs...).
+    Mcp,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -32,7 +34,7 @@ pub struct Config {
     pub data_dir: PathBuf,
 
     /// Secret required (as `Authorization: Bearer <token>`) by the REST API,
-    /// and the admin UI. Leave unset only on trusted networks.
+    /// the admin UI and the MCP endpoint. Leave unset only on trusted networks.
     #[arg(long, env = "CV_API_TOKEN", hide_env_values = true)]
     pub api_token: Option<String>,
 

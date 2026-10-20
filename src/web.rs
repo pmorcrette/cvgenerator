@@ -80,6 +80,10 @@ pub fn router(state: AppState) -> Router {
 
     let protected = Router::new()
         .nest("/api", api)
+        .route(
+            "/mcp",
+            post(crate::mcp::http_handler).get(mcp_get).delete(mcp_get),
+        )
         .route_layer(middleware::from_fn_with_state(state.clone(), require_token));
 
     Router::new()
@@ -127,6 +131,12 @@ async fn require_token(State(state): State<AppState>, req: Request, next: Next) 
 
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
+async fn mcp_get() -> Response {
+    // This server answers each POST with a single JSON response and never
+    // opens a server-initiated SSE stream (MCP Streamable HTTP transport).
+    (StatusCode::METHOD_NOT_ALLOWED, [(header::ALLOW, "POST")]).into_response()
 }
 
 // ----- Public pages -----------------------------------------------------
