@@ -76,6 +76,11 @@ async fn rest_api_and_pages() {
     assert_eq!(status, StatusCode::OK);
     assert!(html.contains("Linus Torvalds") && html.contains("Linux Foundation"));
     assert!(html.contains("layout-sidebar"));
+    // The theme picker submits a GET form to the CV page with `?theme=`.
+    assert!(
+        html.contains(r#"<form class="toolbar-theme" method="get" action="/cv/linus-torvalds">"#)
+    );
+    assert!(html.contains(r#"<select name="theme""#));
 
     let (_, html) = send(&app, "GET", "/cv/linus-torvalds?theme=forest", None, None).await;
     assert!(html.contains("layout-banner"));

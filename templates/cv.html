@@ -58,12 +58,17 @@
 {%- if not options.embed %}
 <nav class="toolbar" aria-label="CV tools">
   {%- if options.themes %}
-  <label class="toolbar-theme">
-    <span class="sr-only">Theme</span>
-    <select onchange="const u=new URL(location.href);u.searchParams.set('theme',this.value);location.href=u">
-      {%- for t in options.themes %}<option value="{{ t.id }}"{% if t.id == theme.id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
-    </select>
-  </label>
+  {#- A plain GET form: no URL handling in an inline handler, where `URL`
+      would resolve to `document.URL` instead of the URL constructor. #}
+  <form class="toolbar-theme" method="get" action="/cv/{{ id }}">
+    <label>
+      <span class="sr-only">Theme</span>
+      <select name="theme" onchange="this.form.submit()">
+        {%- for t in options.themes %}<option value="{{ t.id }}"{% if t.id == theme.id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <noscript><button class="toolbar-btn" type="submit">Apply</button></noscript>
+  </form>
   {%- endif %}
   <a class="toolbar-btn" href="/cv/{{ id }}/resume.json" download="{{ id }}.json" title="Download JSON Resume">JSON</a>
   <button class="toolbar-btn primary" type="button" onclick="window.print()" title="Print or save as PDF">Save as PDF</button>

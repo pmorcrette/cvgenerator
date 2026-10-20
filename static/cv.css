@@ -51,6 +51,8 @@ p { margin: 0 0 .6em; }
   font-size: 13px;
 }
 
+.toolbar form { display: flex; gap: 8px; margin: 0; }
+
 .toolbar select,
 .toolbar-btn {
   height: 32px;
