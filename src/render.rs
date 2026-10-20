@@ -33,6 +33,22 @@ impl Renderer {
         let mut env = Environment::new();
         let templates = [
             ("cv.html", include_str!("../templates/cv.html")),
+            (
+                "admin_base.html",
+                include_str!("../templates/admin_base.html"),
+            ),
+            (
+                "admin_index.html",
+                include_str!("../templates/admin_index.html"),
+            ),
+            (
+                "admin_editor.html",
+                include_str!("../templates/admin_editor.html"),
+            ),
+            (
+                "admin_themes.html",
+                include_str!("../templates/admin_themes.html"),
+            ),
         ];
         for (name, source) in templates {
             env.add_template(name, source)
