@@ -1,0 +1,19 @@
+services:
+  cv:
+    build: .
+    image: cvgenerator:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Protects the admin UI, the REST API and the MCP endpoint.
+      CV_API_TOKEN: ${CV_API_TOKEN:?set CV_API_TOKEN, e.g. `export CV_API_TOKEN=$(openssl rand -hex 32)`}
+      # Public base URL, used in links returned to AI agents.
+      CV_PUBLIC_URL: ${CV_PUBLIC_URL:-http://localhost:8080}
+      # Uncomment to serve one CV on the root URL.
+      # CV_HOME: jane-doe
+    volumes:
+      - cv-data:/data
+
+volumes:
+  cv-data:
