@@ -2,3 +2,4 @@
 //! or the Model Context Protocol.
 
 pub mod model;
+pub mod theme;
