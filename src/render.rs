@@ -1,11 +1,13 @@
 //! HTML rendering with MiniJinja. Templates are compiled into the binary so
 //! the Docker image only needs a single executable.
 
+use chrono::Datelike;
 use minijinja::value::Serde;
-use minijinja::{Environment, Value, context};
+use minijinja::{Environment, State, Value, context};
 use serde::Serialize;
 
 use crate::error::Result;
+use crate::i18n::Lang;
 use crate::model::CvDocument;
 use crate::theme::{Layout, Theme};
 
@@ -78,18 +80,21 @@ impl Renderer {
         options: &CvPageOptions,
     ) -> Result<String> {
         let template = self.env.get_template("cv.html")?;
+        let lang = doc.lang;
         Ok(template.render(context! {
             id => doc.id.clone(),
+            lang => lang.code(),
+            t => Value::from(Serde(lang.labels())),
             cv => Value::from(Serde(&doc.resume)),
-            updated_at => doc.updated_at.format("%B %Y").to_string(),
+            updated => lang.updated(doc.updated_at.month() as usize, doc.updated_at.year()),
             theme => Value::from(Serde(theme)),
             theme_css => theme.to_css(),
             layout => effective_layout(doc, theme, options.layout).id(),
-            default_layout => effective_layout(doc, theme, None).name(),
+            default_layout => lang.layout_name(effective_layout(doc, theme, None)),
             forced_layout => options.layout.map(Layout::id),
             layouts => Layout::ALL
                 .iter()
-                .map(|l| context! { id => l.id(), name => l.name() })
+                .map(|l| context! { id => l.id(), name => lang.layout_name(*l) })
                 .collect::<Vec<_>>(),
             options => Value::from(Serde(options)),
         })?)
@@ -106,13 +111,20 @@ impl Default for Renderer {
     }
 }
 
-const MONTHS: [&str; 12] = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+/// `date` filter: formats dates in the language of the rendered CV (the
+/// `lang` template variable).
+fn format_date(state: &State, value: Option<String>) -> String {
+    let lang = state
+        .lookup("lang")
+        .and_then(|code| code.as_str().and_then(Lang::parse))
+        .unwrap_or_default();
+    format_date_in(lang, value)
+}
 
 /// Format ISO-8601 (partial) dates for humans: `2021-03-14` and `2021-03`
-/// become `Mar 2021`, a bare year is kept and anything else is returned as is.
-fn format_date(value: Option<String>) -> String {
+/// become `Mar 2021` (`mars 2021` in French), a bare year is kept and
+/// anything else is returned as is.
+fn format_date_in(lang: Lang, value: Option<String>) -> String {
     let Some(value) = value else {
         return String::new();
     };
@@ -120,7 +132,7 @@ fn format_date(value: Option<String>) -> String {
     match parts.as_slice() {
         [year, month, ..] if year.len() == 4 && year.parse::<u32>().is_ok() => {
             match month.parse::<usize>() {
-                Ok(m @ 1..=12) => format!("{} {year}", MONTHS[m - 1]),
+                Ok(m @ 1..=12) => lang.short_month_year(m, year),
                 _ => value,
             }
         }
@@ -181,9 +193,12 @@ fn level_percent(value: Option<String>) -> Option<u8> {
     let level = value?.to_lowercase();
     let pct = match level.trim() {
         "master" | "expert" | "native" | "fluent" => 100,
+        "experte" | "natif" | "langue maternelle" | "bilingue" => 100,
         "advanced" | "proficient" | "c2" | "c1" => 82,
-        "intermediate" | "b2" | "b1" => 62,
+        "avancé" | "avancée" | "courant" | "courante" | "confirmé" | "confirmée" => 82,
+        "intermediate" | "b2" | "b1" | "intermédiaire" => 62,
         "beginner" | "basic" | "novice" | "elementary" | "a2" | "a1" => 38,
+        "débutant" | "débutante" | "notions" | "élémentaire" => 38,
         other => other.trim_end_matches('%').parse::<u8>().ok()?.min(100),
     };
     Some(pct)
@@ -197,11 +212,16 @@ mod tests {
 
     #[test]
     fn formats_dates() {
-        assert_eq!(format_date(Some("2021-03-14".into())), "Mar 2021");
-        assert_eq!(format_date(Some("2021-12".into())), "Dec 2021");
-        assert_eq!(format_date(Some("2021".into())), "2021");
-        assert_eq!(format_date(Some("Summer 2020".into())), "Summer 2020");
-        assert_eq!(format_date(None), "");
+        let en = |v: &str| format_date_in(Lang::En, Some(v.into()));
+        let fr = |v: &str| format_date_in(Lang::Fr, Some(v.into()));
+        assert_eq!(en("2021-03-14"), "Mar 2021");
+        assert_eq!(en("2021-12"), "Dec 2021");
+        assert_eq!(en("2021"), "2021");
+        assert_eq!(en("Summer 2020"), "Summer 2020");
+        assert_eq!(format_date_in(Lang::En, None), "");
+        assert_eq!(fr("2021-03-14"), "mars 2021");
+        assert_eq!(fr("2021-02"), "févr. 2021");
+        assert_eq!(fr("2021"), "2021");
     }
 
     #[test]
@@ -218,6 +238,10 @@ mod tests {
         assert_eq!(level_percent(Some("Expert".into())), Some(100));
         assert_eq!(level_percent(Some("75%".into())), Some(75));
         assert_eq!(level_percent(Some("Wizard".into())), None);
+        assert_eq!(level_percent(Some("Langue maternelle".into())), Some(100));
+        assert_eq!(level_percent(Some("Avancé".into())), Some(82));
+        assert_eq!(level_percent(Some("Intermédiaire".into())), Some(62));
+        assert_eq!(level_percent(Some("Notions".into())), Some(38));
     }
 
     #[test]
@@ -231,11 +255,19 @@ mod tests {
             id: "jane".into(),
             theme: "aurora".into(),
             layout: None,
+            lang: Lang::En,
             created_at: now,
             updated_at: now,
             resume,
         };
-        for theme in builtin_themes() {
+        for (theme, lang) in builtin_themes()
+            .into_iter()
+            .zip(Lang::ALL.into_iter().cycle())
+        {
+            let doc = CvDocument {
+                lang,
+                ..doc.clone()
+            };
             for layout in Layout::ALL {
                 let options = CvPageOptions {
                     layout: Some(layout),
@@ -258,6 +290,7 @@ mod tests {
             id: "x".into(),
             theme: theme.id.clone(),
             layout: None,
+            lang: Lang::En,
             created_at: now,
             updated_at: now,
             resume: Resume::default(),

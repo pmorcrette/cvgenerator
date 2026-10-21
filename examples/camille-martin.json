@@ -1,0 +1,89 @@
+{
+  "basics": {
+    "name": "Camille Martin",
+    "label": "Ingénieure logiciel senior",
+    "email": "camille.martin@example.com",
+    "phone": "+33 6 12 34 56 78",
+    "url": "https://camillemartin.dev",
+    "summary": "Ingénieure backend avec 9 ans d’expérience dans la conception de systèmes distribués fiables et observables. J’aime transformer des problèmes flous en logiciels simples et bien testés, et faire grandir les équipes.\n\nActuellement centrée sur Rust, les architectures orientées événements et l’outillage développeur.",
+    "location": { "city": "Lyon", "region": "Auvergne-Rhône-Alpes", "countryCode": "FR" },
+    "profiles": [
+      { "network": "GitHub", "username": "camillemartin", "url": "https://github.com/camillemartin" },
+      { "network": "LinkedIn", "username": "camille-martin", "url": "https://www.linkedin.com/in/camille-martin" }
+    ]
+  },
+  "work": [
+    {
+      "name": "Nimbus Analytics",
+      "position": "Ingénieure logiciel senior",
+      "location": "Lyon",
+      "url": "https://nimbus.example.com",
+      "startDate": "2021-03",
+      "summary": "Référente technique de la plateforme d’ingestion traitant 4 milliards d’événements par jour.",
+      "highlights": [
+        "Réécriture du pipeline d’ingestion en Rust : latence p99 réduite de 70 % et coûts d’infrastructure de 40 %.",
+        "Mise en place du tracing et d’alertes basées sur les SLO sur 30 services.",
+        "Accompagnement de 5 ingénieurs, dont deux promus seniors."
+      ]
+    },
+    {
+      "name": "Paylink",
+      "position": "Ingénieure logiciel",
+      "location": "Paris",
+      "startDate": "2017-09",
+      "endDate": "2021-02",
+      "summary": "Équipe paiements, développement des services d’autorisation de cartes bancaires.",
+      "highlights": [
+        "Conception d’une API de paiement idempotente utilisée par plus de 2 000 marchands.",
+        "Pilotage de la migration d’un monolithe vers 12 services, sans interruption de service."
+      ]
+    },
+    {
+      "name": "Startup Studio",
+      "position": "Développeuse junior",
+      "startDate": "2015-06",
+      "endDate": "2017-08",
+      "highlights": ["Livraison de 6 MVP pour des start-up en Python et TypeScript."]
+    }
+  ],
+  "education": [
+    {
+      "institution": "INSA Lyon",
+      "area": "Informatique",
+      "studyType": "Diplôme d’ingénieur",
+      "startDate": "2010-09",
+      "endDate": "2015-06",
+      "courses": ["Systèmes distribués", "Compilation", "Apprentissage automatique"]
+    }
+  ],
+  "skills": [
+    { "name": "Rust", "level": "Expert", "keywords": ["Tokio", "Axum", "Serde"] },
+    { "name": "Systèmes distribués", "level": "Avancé", "keywords": ["Kafka", "gRPC", "PostgreSQL"] },
+    { "name": "Cloud et DevOps", "level": "Avancé", "keywords": ["Kubernetes", "Terraform", "Docker"] },
+    { "name": "TypeScript", "level": "Intermédiaire", "keywords": ["React", "Node.js"] }
+  ],
+  "languages": [
+    { "language": "Français", "fluency": "Langue maternelle" },
+    { "language": "Anglais", "fluency": "Courant" },
+    { "language": "Espagnol", "fluency": "Intermédiaire" }
+  ],
+  "projects": [
+    {
+      "name": "tracekit",
+      "description": "Boîte à outils open source pour corréler logs, métriques et traces dans les services Rust.",
+      "highlights": ["1,8k étoiles sur GitHub", "Utilisé en production par 3 entreprises"],
+      "keywords": ["Rust", "OpenTelemetry"],
+      "url": "https://github.com/camillemartin/tracekit"
+    }
+  ],
+  "certificates": [
+    { "name": "Certified Kubernetes Administrator", "issuer": "CNCF", "date": "2022-05" }
+  ],
+  "awards": [
+    { "title": "Meilleure conférence", "awarder": "RustFest", "date": "2023-11", "summary": "Parsing zéro-copie à 4 milliards d’événements par jour." }
+  ],
+  "interests": [
+    { "name": "Escalade", "keywords": ["Bloc", "Alpinisme"] },
+    { "name": "Open source", "keywords": ["Rust", "Observabilité"] }
+  ]
+}
