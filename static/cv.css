@@ -291,6 +291,139 @@ h2 {
 .layout-banner .side { order: 2; background: transparent; color: inherit; border-right: 0; border-left: 1px solid var(--border); }
 .layout-banner .side-contact { display: none; }
 
+/* ----- Layout: profile ----------------------------------------------- */
+/* The identity moves into a full-height colored column: the hero and the
+ * sidebar share the left grid column, the main content spans the right. */
+
+.layout-profile .sheet { display: grid; grid-template-columns: 310px 1fr; grid-template-rows: auto 1fr auto; }
+.layout-profile .columns { display: contents; }
+
+.layout-profile .hero {
+  grid-column: 1;
+  grid-row: 1;
+  flex-direction: column;
+  gap: 18px;
+  padding: 48px 32px 12px;
+  text-align: center;
+  background: var(--sidebar);
+  color: var(--sidebar-text);
+  border-bottom: 0;
+}
+
+.layout-profile .avatar { width: 132px; height: 132px; font-size: 46px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--sidebar-text) 22%, transparent); }
+.layout-profile .identity h1 { font-size: 30px; }
+.layout-profile .headline { color: inherit; opacity: .8; font-size: 16px; }
+.layout-profile .side { grid-column: 1; grid-row: 2 / span 2; padding-top: 28px; border-right: 0; }
+.layout-profile .main { grid-column: 2; grid-row: 1 / span 2; padding-top: 48px; }
+.layout-profile .sheet-footer { grid-column: 2; grid-row: 3; }
+.layout-profile .side .skill-head span,
+.layout-profile .side .plain li span { color: color-mix(in srgb, var(--sidebar-text) 65%, transparent); }
+.layout-profile .side .chips li { background: color-mix(in srgb, var(--sidebar-text) 12%, transparent); color: var(--sidebar-text); }
+.layout-profile .side .meter { background: color-mix(in srgb, var(--sidebar-text) 16%, transparent); }
+
+/* ----- Layout: academic ---------------------------------------------- */
+/* Single column, dates in a left gutter, no decorations. */
+
+.layout-academic .hero { padding: 48px 56px 26px; border-bottom: 2px solid var(--accent); }
+.layout-academic .avatar { width: 88px; height: 88px; font-size: 30px; }
+.layout-academic .avatar:not(:has(img)) { display: none; }
+.layout-academic .identity h1 { font-size: 40px; font-weight: 600; letter-spacing: 0; }
+.layout-academic .headline { color: var(--muted); font-style: italic; font-weight: 400; }
+.layout-academic .hero-contact { display: block; margin-top: 14px; }
+.layout-academic .hero-contact .contact { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.layout-academic .columns { grid-template-columns: 1fr; }
+.layout-academic .main { order: 1; padding: 32px 56px 8px; }
+
+.layout-academic .side {
+  order: 2;
+  columns: 2 260px;
+  column-gap: 48px;
+  padding: 16px 56px 40px;
+  background: transparent;
+  color: inherit;
+  border-right: 0;
+}
+
+.layout-academic .side section { break-inside: avoid; margin: 0 0 26px; }
+.layout-academic .side-contact { display: none; }
+.layout-academic .side h2::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.layout-academic .entry,
+.layout-academic .timeline .entry {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  column-gap: 24px;
+  padding: 0 0 18px;
+  border-left: 0;
+}
+
+.layout-academic .timeline .entry::before { display: none; }
+.layout-academic .entry-head { display: contents; }
+.layout-academic .entry > *,
+.layout-academic .entry-head > div { grid-column: 2; }
+.layout-academic .entry-head > div { margin-bottom: 4px; }
+.layout-academic .entry > p { margin-bottom: .4em; }
+.layout-academic .entry .when { grid-column: 1; grid-row: 1 / span 20; padding-top: 2px; white-space: normal; }
+.layout-academic .compact .entry + .entry { margin-top: 0; }
+
+/* ----- Layout: compact ----------------------------------------------- */
+/* Dense typography and spacing, aimed at a one-page print. */
+
+body.layout-compact { font-size: 13.5px; line-height: 1.5; }
+.layout-compact .sheet { max-width: 900px; }
+.layout-compact .hero { gap: 18px; padding: 26px 32px 20px; }
+.layout-compact .avatar { width: 64px; height: 64px; font-size: 22px; box-shadow: none; }
+.layout-compact .identity { flex: 1; display: grid; grid-template-columns: 1fr auto; column-gap: 24px; align-items: center; }
+.layout-compact .identity h1 { align-self: end; font-size: 28px; }
+.layout-compact .headline { align-self: start; margin-top: 2px; font-size: 15px; }
+.layout-compact .hero-contact { display: block; grid-column: 2; grid-row: 1 / span 2; }
+.layout-compact .hero-contact .contact { grid-template-columns: auto auto; gap: 4px 22px; }
+.layout-compact .contact li { font-size: 12.5px; gap: 8px; }
+.layout-compact .icon { width: 14px; height: 14px; }
+.layout-compact .side-contact { display: none; }
+.layout-compact .columns { grid-template-columns: 1fr 230px; }
+.layout-compact .main { order: 1; padding: 22px 32px; }
+.layout-compact .side { order: 2; padding: 22px 24px; border-right: 0; border-left: 1px solid var(--border); }
+.layout-compact section + section { margin-top: 18px; }
+.layout-compact h2 { margin-bottom: 10px; font-size: 11px; }
+.layout-compact .timeline .entry { padding: 0 0 12px; border-left: 0; }
+.layout-compact .timeline .entry::before { display: none; }
+.layout-compact .entry h3 { font-size: 14.5px; }
+.layout-compact .entry-head { margin-bottom: 2px; }
+.layout-compact .highlights li { margin: 1px 0; }
+.layout-compact .about p { font-size: 13.5px; }
+.layout-compact .chips { gap: 4px; margin-top: 6px; }
+.layout-compact .chips li { padding: 1px 8px; font-size: 11.5px; }
+.layout-compact .skill + .skill,
+.layout-compact .interest + .interest { margin-top: 10px; }
+.layout-compact .sheet-footer { padding: 10px 32px; }
+
+/* ----- Layout: cards ------------------------------------------------- */
+/* No sheet: the header and every section float as cards on the page. */
+
+.layout-cards .sheet { max-width: 1040px; background: transparent; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+
+.layout-cards .hero,
+.layout-cards .main section,
+.layout-cards .side section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.4);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 12px 32px -16px rgb(0 0 0 / .16);
+}
+
+.layout-cards .hero { margin-bottom: 20px; }
+.layout-cards .hero-contact { display: block; margin-top: 14px; }
+.layout-cards .hero-contact .contact { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.layout-cards .side-contact { display: none; }
+.layout-cards .columns { grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+.layout-cards .main { order: 1; display: grid; gap: 20px; padding: 0; }
+.layout-cards .side { order: 2; display: grid; gap: 20px; padding: 0; background: transparent; color: inherit; border: 0; }
+.layout-cards section + section { margin-top: 0; }
+.layout-cards .main section, .layout-cards .side section { padding: 24px 26px; }
+.layout-cards .main h2::after { display: none; }
+.layout-cards .sheet-footer { padding: 16px 4px 0; border: 0; }
+
 /* ----- Responsive ---------------------------------------------------- */
 
 @media screen and (max-width: 760px) {
@@ -304,6 +437,22 @@ h2 {
   .entry-head { flex-direction: column; gap: 2px; }
   .sheet-footer { padding: 14px 22px; text-align: center; }
   .toolbar { left: 12px; right: 12px; top: 12px; justify-content: center; }
+
+  .layout-profile .sheet { display: block; }
+  .layout-profile .columns { display: grid; grid-template-columns: 1fr; }
+  .layout-profile .hero, .layout-profile .side, .layout-profile .main { grid-column: auto; grid-row: auto; }
+  .layout-profile .hero { padding-bottom: 32px; }
+  .layout-profile .main { padding-top: 28px; }
+  .layout-academic .hero, .layout-academic .main, .layout-academic .side,
+  .layout-compact .main, .layout-compact .side { padding-left: 22px; padding-right: 22px; }
+  .layout-academic .entry, .layout-academic .timeline .entry { display: block; }
+  .layout-academic .entry .when { display: block; margin-bottom: 4px; }
+  .layout-compact .identity { display: block; }
+  .layout-compact .hero-contact .contact { grid-template-columns: 1fr; justify-items: center; }
+  .layout-compact .hero-contact { margin-top: 12px; }
+  .layout-compact .columns { grid-template-columns: 1fr; }
+  .layout-cards .sheet { padding: 0 12px; }
+  .layout-cards .columns { grid-template-columns: 1fr; }
 }
 
 /* ----- Print / PDF --------------------------------------------------- */
@@ -321,7 +470,24 @@ h2 {
   .columns { grid-template-columns: 250px 1fr; }
   .layout-banner .columns { grid-template-columns: 1fr 240px; }
   .layout-classic .columns { grid-template-columns: 1fr; }
+  .layout-profile .sheet { grid-template-columns: 240px 1fr; }
+  .layout-profile .hero { padding: 32px 22px 8px; }
+  .layout-profile .main { padding-top: 32px; }
+  .layout-academic .hero { padding: 32px 40px 20px; }
+  .layout-academic .main { padding: 24px 40px 4px; }
+  .layout-academic .side { padding: 8px 40px 24px; }
+  .layout-academic .entry { grid-template-columns: 110px 1fr; }
+  .layout-compact .columns { grid-template-columns: 1fr 200px; }
+  .layout-compact .hero { padding: 20px 28px 16px; }
+  .layout-compact .main { padding: 18px 26px; }
+  .layout-compact .side { padding: 18px 20px; }
+  .layout-cards .sheet { padding: 18px; }
+  .layout-cards .columns { grid-template-columns: 1fr 220px; gap: 14px; }
+  .layout-cards .main, .layout-cards .side { gap: 14px; padding: 0; }
+  .layout-cards .hero { margin-bottom: 14px; }
+  .layout-cards .main section, .layout-cards .side section { padding: 18px 20px; box-shadow: none; }
   section + section { margin-top: 20px; }
+  .layout-cards section + section { margin-top: 0; }
   .entry, .skill, blockquote { break-inside: avoid; }
   h2 { break-after: avoid; }
   .sheet-footer { display: none; }

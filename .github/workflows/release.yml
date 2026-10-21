@@ -1,6 +1,6 @@
 name: Release
 
-# Publish prebuilt binaries when a version tag (e.g. v0.2.0) is pushed on a
+# Publish prebuilt binaries when a version tag (e.g. 0.2.0) is pushed on a
 # commit that belongs to master.
 on:
   push:

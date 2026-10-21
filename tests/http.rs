@@ -139,6 +139,80 @@ async fn rest_api_and_pages() {
 }
 
 #[tokio::test]
+async fn layouts() {
+    let (app, _dir) = app(None);
+    let (status, body) = send(
+        &app,
+        "POST",
+        "/api/cvs",
+        Some(json!({ "id": "ada", "theme": "aurora", "layout": "academic" })),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    assert_eq!(json(&body)["layout"], "academic");
+
+    // The CV layout overrides the theme's one, `?layout=` overrides both.
+    let (_, html) = send(&app, "GET", "/cv/ada", None, None).await;
+    assert!(html.contains(r#"class="layout-academic"#));
+    let (_, html) = send(&app, "GET", "/cv/ada?layout=cards", None, None).await;
+    assert!(html.contains(r#"class="layout-cards"#));
+    // The toolbar form sends an empty value for "default".
+    let (status, html) = send(&app, "GET", "/cv/ada?theme=slate&layout=", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains(r#"class="layout-academic"#));
+    let (status, _) = send(&app, "GET", "/cv/ada?layout=zigzag", None, None).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    // Duplicates keep the layout.
+    let (_, body) = send(&app, "POST", "/api/cvs/ada/duplicate", None, None).await;
+    assert_eq!(json(&body)["layout"], "academic");
+
+    // PATCH: absent keeps the layout, null resets it to the theme's.
+    let (_, body) = send(
+        &app,
+        "PATCH",
+        "/api/cvs/ada",
+        Some(json!({ "theme": "slate" })),
+        None,
+    )
+    .await;
+    assert_eq!(json(&body)["layout"], "academic");
+    let (_, body) = send(
+        &app,
+        "PATCH",
+        "/api/cvs/ada",
+        Some(json!({ "layout": null })),
+        None,
+    )
+    .await;
+    assert!(json(&body).get("layout").is_none());
+    let (_, html) = send(&app, "GET", "/cv/ada", None, None).await;
+    assert!(html.contains(r#"class="layout-profile"#));
+
+    let (status, body) = send(
+        &app,
+        "PUT",
+        "/api/cvs/ada",
+        Some(json!({ "resume": {}, "layout": "compact" })),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(json(&body)["layout"], "compact");
+
+    let (_, html) = send(
+        &app,
+        "POST",
+        "/api/preview",
+        Some(json!({ "layout": "profile" })),
+        None,
+    )
+    .await;
+    assert!(html.contains(r#"class="layout-profile"#));
+}
+
+#[tokio::test]
 async fn themes_and_preview() {
     let (app, _dir) = app(None);
     let theme = json!({ "id": "sunset", "name": "Sunset", "layout": "banner", "colors": { "accent": "#f97316" } });

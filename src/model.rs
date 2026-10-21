@@ -9,6 +9,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::theme::Layout;
+
 /// A stored CV: the resume content plus metadata used by the application.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -18,6 +20,9 @@ pub struct CvDocument {
     /// Identifier of the theme used to render this CV.
     #[serde(default = "default_theme")]
     pub theme: String,
+    /// Layout overriding the theme's own; `None` uses the theme layout.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layout: Option<Layout>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub resume: Resume,
@@ -48,6 +53,16 @@ impl From<&CvDocument> for CvSummary {
             updated_at: doc.updated_at,
         }
     }
+}
+
+/// Deserialize a field that distinguishes "absent" (`None`, with
+/// `#[serde(default)]`) from an explicit `null` (`Some(None)`).
+pub fn double_option<'de, D, T>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<T>::deserialize(deserializer).map(Some)
 }
 
 /// Names of the list sections of a [`Resume`], usable with the section helpers.

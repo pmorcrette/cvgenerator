@@ -54,7 +54,7 @@
   <link rel="stylesheet" href="/static/cv.css">
   <style>{{ theme_css | safe }}</style>
 </head>
-<body class="layout-{{ theme.layout }}{% if options.embed %} embed{% endif %}">
+<body class="layout-{{ layout }}{% if options.embed %} embed{% endif %}">
 {%- if not options.embed %}
 <nav class="toolbar" aria-label="CV tools">
   {%- if options.themes %}
@@ -65,6 +65,13 @@
       <span class="sr-only">Theme</span>
       <select name="theme" onchange="this.form.submit()">
         {%- for t in options.themes %}<option value="{{ t.id }}"{% if t.id == theme.id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>
+      <span class="sr-only">Layout</span>
+      <select name="layout" onchange="this.form.submit()">
+        <option value=""{% if not forced_layout %} selected{% endif %}>Default ({{ default_layout }})</option>
+        {%- for l in layouts %}<option value="{{ l.id }}"{% if l.id == forced_layout %} selected{% endif %}>{{ l.name }}</option>{% endfor %}
       </select>
     </label>
     <noscript><button class="toolbar-btn" type="submit">Apply</button></noscript>

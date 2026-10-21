@@ -12,8 +12,78 @@ pub enum Layout {
     Sidebar,
     /// Single centered column with a classic header.
     Classic,
-    /// Bold colored header band above a single column.
+    /// Bold colored header band above two columns, sidebar on the right.
     Banner,
+    /// Full-height colored sidebar holding the photo, name, contact and skills.
+    Profile,
+    /// Dates in a left gutter, sober typography: suited to academic CVs.
+    Academic,
+    /// Dense, smaller type and tight spacing to fit on a single page.
+    Compact,
+    /// Every section in its own card on a tinted background.
+    Cards,
+}
+
+impl Layout {
+    pub const ALL: [Layout; 7] = [
+        Layout::Sidebar,
+        Layout::Classic,
+        Layout::Banner,
+        Layout::Profile,
+        Layout::Academic,
+        Layout::Compact,
+        Layout::Cards,
+    ];
+
+    /// Identifier used in JSON, URLs (`?layout=`) and CSS classes.
+    pub fn id(self) -> &'static str {
+        match self {
+            Layout::Sidebar => "sidebar",
+            Layout::Classic => "classic",
+            Layout::Banner => "banner",
+            Layout::Profile => "profile",
+            Layout::Academic => "academic",
+            Layout::Compact => "compact",
+            Layout::Cards => "cards",
+        }
+    }
+
+    pub fn description(self) -> &'static str {
+        match self {
+            Layout::Sidebar => {
+                "Two columns with contact, skills and languages in a tinted sidebar."
+            }
+            Layout::Classic => {
+                "Single centered column with a classic header; side details at the bottom."
+            }
+            Layout::Banner => "Bold colored header band, main column with a sidebar on the right.",
+            Layout::Profile => {
+                "Full-height colored sidebar holding the photo, name, contact and skills."
+            }
+            Layout::Academic => {
+                "Dates in a left gutter and sober typography, suited to academic CVs."
+            }
+            Layout::Compact => "Dense, smaller type and tight spacing to fit on a single page.",
+            Layout::Cards => "Every section in its own card on a tinted background.",
+        }
+    }
+
+    /// Parse a layout identifier (`"sidebar"`, `"cards"`...).
+    pub fn parse(id: &str) -> Option<Layout> {
+        Layout::ALL.into_iter().find(|l| l.id() == id)
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Layout::Sidebar => "Sidebar",
+            Layout::Classic => "Classic",
+            Layout::Banner => "Banner",
+            Layout::Profile => "Profile",
+            Layout::Academic => "Academic",
+            Layout::Compact => "Compact",
+            Layout::Cards => "Cards",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -296,6 +366,81 @@ pub fn builtin_themes() -> Vec<Theme> {
             custom_css: String::new(),
             builtin: true,
         },
+        Theme {
+            id: "slate".into(),
+            name: "Slate".into(),
+            description: "Deep slate profile column with amber accents.".into(),
+            layout: Layout::Profile,
+            colors: Colors {
+                background: "#e9ecf1".into(),
+                surface: "#ffffff".into(),
+                sidebar: "#1e293b".into(),
+                sidebar_text: "#e2e8f0".into(),
+                text: "#1e293b".into(),
+                muted: "#64748b".into(),
+                accent: "#d97706".into(),
+                accent_soft: "#fdf1dc".into(),
+                border: "#e2e8f0".into(),
+            },
+            fonts: Fonts {
+                heading: "\"Sora\", system-ui, sans-serif".into(),
+                body: "\"Inter\", system-ui, sans-serif".into(),
+                import_url: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap".into(),
+            },
+            radius: "8px".into(),
+            custom_css: String::new(),
+            builtin: true,
+        },
+        Theme {
+            id: "scholar".into(),
+            name: "Scholar".into(),
+            description: "Sober navy and serif type with a date gutter.".into(),
+            layout: Layout::Academic,
+            colors: Colors {
+                background: "#eef0f3".into(),
+                surface: "#ffffff".into(),
+                sidebar: "#f5f6f8".into(),
+                sidebar_text: "#1b2433".into(),
+                text: "#1b2433".into(),
+                muted: "#5f6b7d".into(),
+                accent: "#1d3a6e".into(),
+                accent_soft: "#e7ecf5".into(),
+                border: "#dfe3ea".into(),
+            },
+            fonts: Fonts {
+                heading: "\"EB Garamond\", Georgia, serif".into(),
+                body: "\"EB Garamond\", Georgia, serif".into(),
+                import_url: "https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap".into(),
+            },
+            radius: "2px".into(),
+            custom_css: String::new(),
+            builtin: true,
+        },
+        Theme {
+            id: "studio".into(),
+            name: "Studio".into(),
+            description: "Playful cards on a soft lavender canvas.".into(),
+            layout: Layout::Cards,
+            colors: Colors {
+                background: "#efeafd".into(),
+                surface: "#ffffff".into(),
+                sidebar: "#f7f4ff".into(),
+                sidebar_text: "#231942".into(),
+                text: "#231942".into(),
+                muted: "#6b6489".into(),
+                accent: "#7c3aed".into(),
+                accent_soft: "#f0e9ff".into(),
+                border: "#e6defa".into(),
+            },
+            fonts: Fonts {
+                heading: "\"Outfit\", system-ui, sans-serif".into(),
+                body: "\"Outfit\", system-ui, sans-serif".into(),
+                import_url: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap".into(),
+            },
+            radius: "16px".into(),
+            custom_css: String::new(),
+            builtin: true,
+        },
     ]
 }
 
@@ -310,6 +455,15 @@ mod tests {
                 .validate()
                 .unwrap_or_else(|e| panic!("{}: {e}", theme.id));
         }
+    }
+
+    #[test]
+    fn layout_ids_match_serde() {
+        for layout in Layout::ALL {
+            assert_eq!(serde_json::to_value(layout).unwrap(), layout.id());
+            assert_eq!(Layout::parse(layout.id()), Some(layout));
+        }
+        assert_eq!(Layout::parse("nope"), None);
     }
 
     #[test]

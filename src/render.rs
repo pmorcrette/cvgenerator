@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use crate::error::Result;
 use crate::model::CvDocument;
-use crate::theme::Theme;
+use crate::theme::{Layout, Theme};
 
 pub struct Renderer {
     env: Environment<'static>,
@@ -20,6 +20,14 @@ pub struct CvPageOptions {
     pub embed: bool,
     /// Themes offered in the toolbar's theme picker.
     pub themes: Vec<ThemeChoice>,
+    /// Layout forced for this rendering (e.g. `?layout=` preview), taking
+    /// precedence over the CV's and the theme's layout.
+    pub layout: Option<Layout>,
+}
+
+/// Layout actually used to render `doc` with `theme`.
+pub fn effective_layout(doc: &CvDocument, theme: &Theme, forced: Option<Layout>) -> Layout {
+    forced.or(doc.layout).unwrap_or(theme.layout)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -76,6 +84,13 @@ impl Renderer {
             updated_at => doc.updated_at.format("%B %Y").to_string(),
             theme => Value::from(Serde(theme)),
             theme_css => theme.to_css(),
+            layout => effective_layout(doc, theme, options.layout).id(),
+            default_layout => effective_layout(doc, theme, None).name(),
+            forced_layout => options.layout.map(Layout::id),
+            layouts => Layout::ALL
+                .iter()
+                .map(|l| context! { id => l.id(), name => l.name() })
+                .collect::<Vec<_>>(),
             options => Value::from(Serde(options)),
         })?)
     }
@@ -215,17 +230,44 @@ mod tests {
         let doc = CvDocument {
             id: "jane".into(),
             theme: "aurora".into(),
+            layout: None,
             created_at: now,
             updated_at: now,
             resume,
         };
         for theme in builtin_themes() {
-            let html = renderer
-                .render_cv(&doc, &theme, &CvPageOptions::default())
-                .unwrap();
-            assert!(html.contains("Jane Doe"));
-            assert!(html.contains("&lt;script&gt;"));
-            assert!(!html.contains("<script>alert(1)"));
+            for layout in Layout::ALL {
+                let options = CvPageOptions {
+                    layout: Some(layout),
+                    ..Default::default()
+                };
+                let html = renderer.render_cv(&doc, &theme, &options).unwrap();
+                assert!(html.contains("Jane Doe"));
+                assert!(html.contains(&format!("class=\"layout-{}", layout.id())));
+                assert!(html.contains("&lt;script&gt;"));
+                assert!(!html.contains("<script>alert(1)"));
+            }
         }
+    }
+
+    #[test]
+    fn layout_precedence() {
+        let theme = builtin_themes().remove(0);
+        let now = chrono::Utc::now();
+        let mut doc = CvDocument {
+            id: "x".into(),
+            theme: theme.id.clone(),
+            layout: None,
+            created_at: now,
+            updated_at: now,
+            resume: Resume::default(),
+        };
+        assert_eq!(effective_layout(&doc, &theme, None), theme.layout);
+        doc.layout = Some(Layout::Cards);
+        assert_eq!(effective_layout(&doc, &theme, None), Layout::Cards);
+        assert_eq!(
+            effective_layout(&doc, &theme, Some(Layout::Compact)),
+            Layout::Compact
+        );
     }
 }

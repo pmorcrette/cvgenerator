@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 
 use crate::error::{Error, Result};
 use crate::model::{CvDocument, CvSummary, Resume, is_valid_id, slugify};
-use crate::theme::{Theme, builtin_themes};
+use crate::theme::{Layout, Theme, builtin_themes};
 
 pub struct Store {
     cvs_dir: PathBuf,
@@ -72,6 +72,7 @@ impl Store {
         id: Option<String>,
         resume: Resume,
         theme: Option<String>,
+        layout: Option<Layout>,
     ) -> Result<CvDocument> {
         let theme = theme.unwrap_or_else(crate::model::default_theme);
         self.get_theme(&theme)?;
@@ -105,6 +106,7 @@ impl Store {
         let doc = CvDocument {
             id,
             theme,
+            layout,
             created_at: now,
             updated_at: now,
             resume,
@@ -263,12 +265,16 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = Store::open(dir.path()).unwrap();
 
-        let a = store.create_cv(None, resume("Ada Lovelace"), None).unwrap();
-        let b = store.create_cv(None, resume("Ada Lovelace"), None).unwrap();
+        let a = store
+            .create_cv(None, resume("Ada Lovelace"), None, None)
+            .unwrap();
+        let b = store
+            .create_cv(None, resume("Ada Lovelace"), None, None)
+            .unwrap();
         assert_eq!(a.id, "ada-lovelace");
         assert_eq!(b.id, "ada-lovelace-2");
         assert!(matches!(
-            store.create_cv(Some("ada-lovelace".into()), resume("x"), None),
+            store.create_cv(Some("ada-lovelace".into()), resume("x"), None, None),
             Err(Error::Conflict(_))
         ));
 
@@ -298,7 +304,7 @@ mod tests {
         let store = Store::open(dir.path()).unwrap();
         assert!(matches!(store.get_cv("../secret"), Err(Error::Invalid(_))));
         assert!(matches!(
-            store.create_cv(None, resume("x"), Some("nope".into())),
+            store.create_cv(None, resume("x"), Some("nope".into()), None),
             Err(Error::NotFound(_))
         ));
     }
@@ -326,7 +332,7 @@ mod tests {
         );
 
         store
-            .create_cv(None, resume("Bob"), Some("corporate".into()))
+            .create_cv(None, resume("Bob"), Some("corporate".into()), None)
             .unwrap();
         assert!(matches!(
             store.delete_theme("corporate"),
