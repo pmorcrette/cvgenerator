@@ -17,7 +17,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use crate::error::Error;
 use crate::model::{CvDocument, CvSummary, SECTIONS};
 use crate::service::{SectionEdit, edit_section, parse_resume, patch_resume};
-use crate::theme::Theme;
+use crate::theme::{Layout, Theme};
 use crate::web::AppState;
 
 const SUPPORTED_VERSIONS: &[&str] = &["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
@@ -207,11 +207,12 @@ impl McpServer {
                 struct A {
                     id: Option<String>,
                     theme: Option<String>,
+                    layout: Option<Layout>,
                     resume: Option<Value>,
                 }
                 let a: A = parse_args(args)?;
                 let resume = parse_resume(a.resume.unwrap_or_else(|| json!({})))?;
-                self.doc_json(&store.create_cv(a.id, resume, a.theme)?)
+                self.doc_json(&store.create_cv(a.id, resume, a.theme, a.layout)?)
             }
             "update_cv" => {
                 #[derive(Deserialize)]
@@ -297,7 +298,12 @@ impl McpServer {
                 let a: A = parse_args(args)?;
                 let source = store.get_cv(&a.id)?;
                 let new_id = a.new_id.unwrap_or_else(|| format!("{}-copy", a.id));
-                self.doc_json(&store.create_cv(Some(new_id), source.resume, Some(source.theme))?)
+                self.doc_json(&store.create_cv(
+                    Some(new_id),
+                    source.resume,
+                    Some(source.theme),
+                    source.layout,
+                )?)
             }
             "delete_cv" => {
                 let a: IdArgs = parse_args(args)?;
@@ -316,6 +322,27 @@ impl McpServer {
                     Ok(())
                 })?)
             }
+            "set_cv_layout" => {
+                #[derive(Deserialize)]
+                struct A {
+                    id: String,
+                    layout: String,
+                }
+                let a: A = parse_args(args)?;
+                let layout = match a.layout.as_str() {
+                    "default" => None,
+                    id => Some(Layout::parse(id).ok_or_else(|| {
+                        Error::Invalid(format!(
+                            "unknown layout '{id}', expected 'default' or one of: {}",
+                            layout_ids().join(", ")
+                        ))
+                    })?),
+                };
+                self.doc_json(&store.update_cv(&a.id, |doc| {
+                    doc.layout = layout;
+                    Ok(())
+                })?)
+            }
             "list_themes" => {
                 let themes: Vec<Value> = store
                     .list_themes()?
@@ -327,7 +354,11 @@ impl McpServer {
                         })
                     })
                     .collect();
-                Ok(json!({ "themes": themes }))
+                let layouts: Vec<Value> = Layout::ALL
+                    .iter()
+                    .map(|l| json!({ "id": l.id(), "name": l.name(), "description": l.description() }))
+                    .collect();
+                Ok(json!({ "themes": themes, "layouts": layouts }))
             }
             "get_theme" => {
                 let a: IdArgs = parse_args(args)?;
@@ -477,6 +508,10 @@ struct IdArgs {
     id: String,
 }
 
+fn layout_ids() -> Vec<&'static str> {
+    Layout::ALL.iter().map(|l| l.id()).collect()
+}
+
 fn parse_args<T: DeserializeOwned>(args: Value) -> Result<T, Error> {
     serde_json::from_value(args).map_err(|e| Error::Invalid(format!("arguments: {e}")))
 }
@@ -516,6 +551,7 @@ fn tool_definitions() -> Vec<Value> {
     let id = json!({ "type": "string", "description": "CV identifier (lowercase letters, digits, dashes)" });
     let section =
         json!({ "type": "string", "enum": SECTIONS, "description": "List section of the resume" });
+    let layout_choices: Vec<&str> = std::iter::once("default").chain(layout_ids()).collect();
     let resume = json!({ "type": "object", "description": "Resume content in JSON Resume format (see get_resume_schema)" });
     vec![
         tool(
@@ -538,7 +574,12 @@ fn tool_definitions() -> Vec<Value> {
             "create_cv",
             "Create CV",
             "Create a new CV. The id is derived from basics.name when omitted. Returns the stored document and its URL.",
-            json!({ "id": id, "theme": { "type": "string", "description": "Theme id (see list_themes), default 'aurora'" }, "resume": resume }),
+            json!({
+                "id": id,
+                "theme": { "type": "string", "description": "Theme id (see list_themes), default 'aurora'" },
+                "layout": { "type": "string", "enum": layout_ids(), "description": "Layout overriding the theme's one (omit to use the theme layout)" },
+                "resume": resume
+            }),
             &[],
             write.clone(),
         ),
@@ -616,9 +657,22 @@ fn tool_definitions() -> Vec<Value> {
             write.clone(),
         ),
         tool(
+            "set_cv_layout",
+            "Set CV layout",
+            "Change the page layout of a CV, independently of its theme (colors and fonts). \
+             'default' goes back to the theme's own layout. Layouts are described by list_themes.",
+            json!({
+                "id": id,
+                "layout": { "type": "string", "enum": layout_choices }
+            }),
+            &["id", "layout"],
+            write.clone(),
+        ),
+        tool(
             "list_themes",
             "List themes",
-            "List available themes (built-in and custom) with their layout and accent color.",
+            "List available themes (built-in and custom) with their default layout and accent color, \
+             and the available layouts with their description.",
             json!({}),
             &[],
             read_only.clone(),
@@ -635,7 +689,7 @@ fn tool_definitions() -> Vec<Value> {
             "save_theme",
             "Create or update theme",
             "Create or replace a custom theme. Fields not provided are taken from the `base` theme (default 'aurora'). \
-             Theme fields: id, name, description, layout ('sidebar' | 'classic' | 'banner'), \
+             Theme fields: id, name, description, layout (see list_themes), \
              colors {background, surface, sidebar, sidebarText, text, muted, accent, accentSoft, border} (CSS colors), \
              fonts {heading, body (CSS font-family stacks), importUrl (https stylesheet, e.g. Google Fonts)}, \
              radius (CSS length), customCss (extra CSS). Built-in themes cannot be overwritten.",
@@ -871,6 +925,33 @@ mod tests {
             json!({ "id": "grace-navy", "theme": "missing" }),
         );
         assert_eq!(err["isError"], true);
+
+        let cv = call(
+            &server,
+            "set_cv_layout",
+            json!({ "id": "grace-navy", "layout": "cards" }),
+        );
+        assert_eq!(cv["structuredContent"]["layout"], "cards");
+        let cv = call(
+            &server,
+            "set_cv_layout",
+            json!({ "id": "grace-navy", "layout": "default" }),
+        );
+        assert!(cv["structuredContent"].get("layout").is_none());
+        let err = call(
+            &server,
+            "set_cv_layout",
+            json!({ "id": "grace-navy", "layout": "zigzag" }),
+        );
+        assert_eq!(err["isError"], true);
+        let themes = call(&server, "list_themes", json!({}));
+        assert_eq!(
+            themes["structuredContent"]["layouts"]
+                .as_array()
+                .unwrap()
+                .len(),
+            Layout::ALL.len()
+        );
         let err = call(
             &server,
             "remove_section_item",

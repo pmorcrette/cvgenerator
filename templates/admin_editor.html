@@ -4,6 +4,10 @@
 {% block actions %}
 <span id="save-status" class="status" data-state="idle">Loading…</span>
 <select id="theme-select" class="select small" aria-label="Theme" data-theme-select></select>
+<select id="layout-select" class="select small" aria-label="Layout">
+  <option value="">Theme layout</option>
+  {%- for l in layouts %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}
+</select>
 <a class="btn ghost small" href="/cv/{{ id }}" target="_blank" rel="noopener">View</a>
 <button class="btn primary small" id="save-btn" type="button" disabled>Save</button>
 {% endblock %}

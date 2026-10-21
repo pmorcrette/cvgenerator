@@ -235,9 +235,14 @@ async function initEditor() {
   const status = $("#save-status");
   const saveBtn = $("#save-btn");
   const themeSelect = $("#theme-select");
+  const layoutSelect = $("#layout-select");
   const errorBox = $("#editor-error");
   let savedText = "";
   let savedTheme = "";
+  let savedLayout = "";
+
+  const isDirty = () =>
+    editor.value !== savedText || themeSelect.value !== savedTheme || layoutSelect.value !== savedLayout;
 
   const setStatus = (state, text) => { status.dataset.state = state; status.textContent = text; };
 
@@ -255,7 +260,7 @@ async function initEditor() {
   };
 
   const refreshDirty = () => {
-    const dirty = editor.value !== savedText || themeSelect.value !== savedTheme;
+    const dirty = isDirty();
     saveBtn.disabled = !dirty;
     if (dirty) setStatus("dirty", "Unsaved changes");
     else setStatus("saved", "Saved");
@@ -266,7 +271,8 @@ async function initEditor() {
     const resume = parse();
     if (!resume) return;
     try {
-      const html = await api("/preview", { method: "POST", body: { resume, theme: themeSelect.value }, raw: true });
+      const body = { resume, theme: themeSelect.value, layout: layoutSelect.value || undefined };
+      const html = await api("/preview", { method: "POST", body, raw: true });
       writePreview(iframe, html);
     } catch (err) {
       errorBox.textContent = err.message;
@@ -280,9 +286,12 @@ async function initEditor() {
     saveBtn.disabled = true;
     setStatus("idle", "Saving…");
     try {
-      const doc = await api(`/cvs/${encodeURIComponent(id)}`, { method: "PUT", body: { resume, theme: themeSelect.value } });
+      // `layout: null` goes back to the theme's own layout.
+      const body = { resume, theme: themeSelect.value, layout: layoutSelect.value || null };
+      const doc = await api(`/cvs/${encodeURIComponent(id)}`, { method: "PUT", body });
       savedText = editor.value;
       savedTheme = doc.theme;
+      savedLayout = doc.layout || "";
       refreshDirty();
       toast("CV saved");
     } catch (err) {
@@ -296,6 +305,7 @@ async function initEditor() {
     const [doc] = await Promise.all([api(`/cvs/${encodeURIComponent(id)}`), fillThemeSelects()]);
     editor.value = savedText = JSON.stringify(doc.resume, null, 2);
     themeSelect.value = savedTheme = doc.theme;
+    layoutSelect.value = savedLayout = doc.layout || "";
     refreshDirty();
     updatePreview();
   } catch (err) {
@@ -308,6 +318,7 @@ async function initEditor() {
 
   editor.addEventListener("input", () => { refreshDirty(); updatePreview(); });
   themeSelect.addEventListener("change", () => { refreshDirty(); updatePreview(); });
+  layoutSelect.addEventListener("change", () => { refreshDirty(); updatePreview(); });
   saveBtn.addEventListener("click", save);
 
   $("#format-btn").addEventListener("click", () => {
@@ -349,7 +360,7 @@ async function initEditor() {
   });
 
   window.addEventListener("beforeunload", (event) => {
-    if (editor.value !== savedText || themeSelect.value !== savedTheme) event.preventDefault();
+    if (isDirty()) event.preventDefault();
   });
 }
 

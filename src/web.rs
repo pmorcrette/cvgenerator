@@ -14,11 +14,11 @@ use serde_json::{Value, json};
 
 use crate::config::Config;
 use crate::error::{Error, Result};
-use crate::model::{CvDocument, CvSummary, Resume};
+use crate::model::{CvDocument, CvSummary, Resume, double_option};
 use crate::render::{CvPageOptions, Renderer, ThemeChoice};
 use crate::service::{parse_resume, patch_resume};
 use crate::storage::Store;
-use crate::theme::Theme;
+use crate::theme::{Layout, Theme};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -37,7 +37,13 @@ impl AppState {
     }
 
     /// Render a CV, optionally with another theme than its own.
-    pub fn render_cv(&self, doc: &CvDocument, theme: Option<&str>, embed: bool) -> Result<String> {
+    pub fn render_cv(
+        &self,
+        doc: &CvDocument,
+        theme: Option<&str>,
+        layout: Option<Layout>,
+        embed: bool,
+    ) -> Result<String> {
         let theme = match theme {
             Some(id) => self.store.get_theme(id)?,
             None => self
@@ -54,8 +60,12 @@ impl AppState {
                 name: t.name,
             })
             .collect();
-        self.renderer
-            .render_cv(doc, &theme, &CvPageOptions { embed, themes })
+        let options = CvPageOptions {
+            embed,
+            themes,
+            layout,
+        };
+        self.renderer.render_cv(doc, &theme, &options)
     }
 }
 
@@ -144,7 +154,20 @@ async fn mcp_get() -> Response {
 #[derive(Deserialize)]
 struct PageQuery {
     theme: Option<String>,
+    /// Layout id; empty means the CV's default (sent by the toolbar form).
+    layout: Option<String>,
     embed: Option<bool>,
+}
+
+impl PageQuery {
+    fn layout(&self) -> Result<Option<Layout>> {
+        match self.layout.as_deref() {
+            None | Some("") => Ok(None),
+            Some(id) => Layout::parse(id)
+                .map(Some)
+                .ok_or_else(|| Error::NotFound(format!("layout '{id}'"))),
+        }
+    }
 }
 
 async fn home(State(state): State<AppState>, query: Query<PageQuery>) -> Result<Response> {
@@ -160,7 +183,12 @@ async fn cv_page(
     Query(query): Query<PageQuery>,
 ) -> Result<Response> {
     let doc = state.store.get_cv(&id)?;
-    let html = state.render_cv(&doc, query.theme.as_deref(), query.embed.unwrap_or(false))?;
+    let html = state.render_cv(
+        &doc,
+        query.theme.as_deref(),
+        query.layout()?,
+        query.embed.unwrap_or(false),
+    )?;
     Ok(Html(html).into_response())
 }
 
@@ -190,7 +218,15 @@ async fn admin_themes(State(state): State<AppState>) -> Result<Html<String>> {
 }
 
 fn admin_page(state: &AppState, template: &str, ctx: minijinja::Value) -> Result<Html<String>> {
-    let ctx = context! { auth_required => state.config.api_token().is_some(), ..ctx };
+    let layouts: Vec<_> = Layout::ALL
+        .iter()
+        .map(|l| context! { id => l.id(), name => l.name(), description => l.description() })
+        .collect();
+    let ctx = context! {
+        auth_required => state.config.api_token().is_some(),
+        layouts,
+        ..ctx
+    };
     Ok(Html(state.renderer.render_admin(template, ctx)?))
 }
 
@@ -224,6 +260,7 @@ async fn list_cvs(State(state): State<AppState>) -> Result<Json<Vec<CvSummary>>>
 struct CreateCv {
     id: Option<String>,
     theme: Option<String>,
+    layout: Option<Layout>,
     #[serde(default)]
     resume: Option<Value>,
 }
@@ -233,7 +270,9 @@ async fn create_cv(
     Json(body): Json<CreateCv>,
 ) -> Result<(StatusCode, Json<CvDocument>)> {
     let resume = parse_resume(body.resume.unwrap_or_else(|| json!({})))?;
-    let doc = state.store.create_cv(body.id, resume, body.theme)?;
+    let doc = state
+        .store
+        .create_cv(body.id, resume, body.theme, body.layout)?;
     Ok((StatusCode::CREATED, Json(doc)))
 }
 
@@ -244,6 +283,9 @@ async fn get_cv(State(state): State<AppState>, Path(id): Path<String>) -> Result
 #[derive(Deserialize)]
 struct ReplaceCv {
     theme: Option<String>,
+    /// Absent: unchanged, `null`: use the theme's layout.
+    #[serde(default, deserialize_with = "double_option")]
+    layout: Option<Option<Layout>>,
     resume: Value,
 }
 
@@ -258,6 +300,9 @@ async fn replace_cv(
         if let Some(theme) = body.theme {
             doc.theme = theme;
         }
+        if let Some(layout) = body.layout {
+            doc.layout = layout;
+        }
         Ok(())
     })?;
     Ok(Json(doc))
@@ -266,6 +311,9 @@ async fn replace_cv(
 #[derive(Deserialize)]
 struct PatchCv {
     theme: Option<String>,
+    /// Absent: unchanged, `null`: use the theme's layout.
+    #[serde(default, deserialize_with = "double_option")]
+    layout: Option<Option<Layout>>,
     /// JSON Merge Patch (RFC 7396) applied to the resume.
     resume: Option<Value>,
 }
@@ -281,6 +329,9 @@ async fn patch_cv(
         }
         if let Some(theme) = body.theme {
             doc.theme = theme;
+        }
+        if let Some(layout) = body.layout {
+            doc.layout = layout;
         }
         Ok(())
     })?;
@@ -308,7 +359,7 @@ async fn duplicate_cv(
         .or_else(|| Some(format!("{id}-copy")));
     let doc = state
         .store
-        .create_cv(new_id, source.resume, Some(source.theme))?;
+        .create_cv(new_id, source.resume, Some(source.theme), source.layout)?;
     Ok((StatusCode::CREATED, Json(doc)))
 }
 
@@ -364,6 +415,8 @@ struct PreviewRequest {
     theme: Option<String>,
     /// Unsaved theme definition (takes precedence over `theme`).
     theme_data: Option<Theme>,
+    /// Layout overriding the theme's one.
+    layout: Option<Layout>,
 }
 
 async fn preview(
@@ -386,13 +439,14 @@ async fn preview(
     let doc = CvDocument {
         id: "preview".into(),
         theme: theme.id.clone(),
+        layout: req.layout,
         created_at: now,
         updated_at: now,
         resume,
     };
     let options = CvPageOptions {
         embed: true,
-        themes: vec![],
+        ..Default::default()
     };
     Ok(Html(state.renderer.render_cv(&doc, &theme, &options)?))
 }

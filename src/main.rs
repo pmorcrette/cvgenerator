@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     let store = Store::open(&config.data_dir)
         .with_context(|| format!("cannot open data directory {}", config.data_dir.display()))?;
     if config.seed_example && store.list_cvs()?.is_empty() {
-        let doc = store.create_cv(Some("jane-doe".into()), example_resume(), None)?;
+        let doc = store.create_cv(Some("jane-doe".into()), example_resume(), None, None)?;
         tracing::info!("created example CV '{}'", doc.id);
     }
     let state = AppState::new(store, config.clone());

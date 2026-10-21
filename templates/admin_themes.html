@@ -23,7 +23,7 @@
       <label class="field"><span>Description</span><input name="description"></label>
       <div class="grid-2">
         <label class="field"><span>Layout</span>
-          <select name="layout"><option value="sidebar">Sidebar</option><option value="classic">Classic</option><option value="banner">Banner</option></select>
+          <select name="layout">{% for l in layouts %}<option value="{{ l.id }}" title="{{ l.description }}">{{ l.name }}</option>{% endfor %}</select>
         </label>
         <label class="field"><span>Corner radius</span><input name="radius" placeholder="10px"></label>
       </div>
