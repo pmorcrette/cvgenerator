@@ -148,6 +148,7 @@ async function initDashboard() {
           </div>
           <div class="meta">
             <span class="chip"><i></i>${esc(names[cv.theme] || cv.theme)}</span>
+            ${cv.lang !== "en" ? `<span class="chip">${esc(cv.lang.toUpperCase())}</span>` : ""}
             <span>Updated ${esc(relativeDate(cv.updatedAt))}</span>
           </div>
           <div class="card-actions">
@@ -198,11 +199,12 @@ async function initDashboard() {
     if (data.get("label").trim()) basics.label = data.get("label").trim();
     let resume = { basics };
     if (data.get("example")) {
-      const example = await api("/cvs/jane-doe").catch(() => null);
-      resume = example ? { ...example.resume, basics: { ...example.resume.basics, ...basics } } : resume;
+      const example = await api(`/example?lang=${encodeURIComponent(data.get("lang"))}`).catch(() => null);
+      resume = example ? { ...example, basics: { ...example.basics, ...basics } } : resume;
     }
     try {
-      const doc = await api("/cvs", { method: "POST", body: { resume, theme: data.get("theme") } });
+      const body = { resume, theme: data.get("theme"), lang: data.get("lang") };
+      const doc = await api("/cvs", { method: "POST", body });
       location.href = `/admin/cvs/${encodeURIComponent(doc.id)}`;
     } catch (err) {
       const error = $(".form-error", form);
@@ -236,13 +238,18 @@ async function initEditor() {
   const saveBtn = $("#save-btn");
   const themeSelect = $("#theme-select");
   const layoutSelect = $("#layout-select");
+  const langSelect = $("#lang-select");
   const errorBox = $("#editor-error");
   let savedText = "";
   let savedTheme = "";
   let savedLayout = "";
+  let savedLang = "";
 
   const isDirty = () =>
-    editor.value !== savedText || themeSelect.value !== savedTheme || layoutSelect.value !== savedLayout;
+    editor.value !== savedText ||
+    themeSelect.value !== savedTheme ||
+    layoutSelect.value !== savedLayout ||
+    langSelect.value !== savedLang;
 
   const setStatus = (state, text) => { status.dataset.state = state; status.textContent = text; };
 
@@ -271,7 +278,7 @@ async function initEditor() {
     const resume = parse();
     if (!resume) return;
     try {
-      const body = { resume, theme: themeSelect.value, layout: layoutSelect.value || undefined };
+      const body = { resume, theme: themeSelect.value, layout: layoutSelect.value || undefined, lang: langSelect.value };
       const html = await api("/preview", { method: "POST", body, raw: true });
       writePreview(iframe, html);
     } catch (err) {
@@ -287,11 +294,12 @@ async function initEditor() {
     setStatus("idle", "Saving…");
     try {
       // `layout: null` goes back to the theme's own layout.
-      const body = { resume, theme: themeSelect.value, layout: layoutSelect.value || null };
+      const body = { resume, theme: themeSelect.value, layout: layoutSelect.value || null, lang: langSelect.value };
       const doc = await api(`/cvs/${encodeURIComponent(id)}`, { method: "PUT", body });
       savedText = editor.value;
       savedTheme = doc.theme;
       savedLayout = doc.layout || "";
+      savedLang = doc.lang;
       refreshDirty();
       toast("CV saved");
     } catch (err) {
@@ -306,6 +314,7 @@ async function initEditor() {
     editor.value = savedText = JSON.stringify(doc.resume, null, 2);
     themeSelect.value = savedTheme = doc.theme;
     layoutSelect.value = savedLayout = doc.layout || "";
+    langSelect.value = savedLang = doc.lang;
     refreshDirty();
     updatePreview();
   } catch (err) {
@@ -319,6 +328,7 @@ async function initEditor() {
   editor.addEventListener("input", () => { refreshDirty(); updatePreview(); });
   themeSelect.addEventListener("change", () => { refreshDirty(); updatePreview(); });
   layoutSelect.addEventListener("change", () => { refreshDirty(); updatePreview(); });
+  langSelect.addEventListener("change", () => { refreshDirty(); updatePreview(); });
   saveBtn.addEventListener("click", save);
 
   $("#format-btn").addEventListener("click", () => {

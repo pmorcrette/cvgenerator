@@ -8,6 +8,9 @@
   <option value="">Theme layout</option>
   {%- for l in layouts %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}
 </select>
+<select id="lang-select" class="select small" aria-label="Language">
+  {%- for l in langs %}<option value="{{ l.code }}">{{ l.name }}</option>{% endfor %}
+</select>
 <a class="btn ghost small" href="/cv/{{ id }}" target="_blank" rel="noopener">View</a>
 <button class="btn primary small" id="save-btn" type="button" disabled>Save</button>
 {% endblock %}
