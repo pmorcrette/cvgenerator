@@ -10,7 +10,8 @@ for you through the built-in **MCP server**.
 ## Features
 
 - **Readable CV pages**: clean typography, responsive layout, print-ready A4 output ("Save as PDF").
-- **Themes**: 5 built-in themes (Aurora, Midnight, Classic, Forest, Mono) and 3 layouts (sidebar, classic, banner).
+- **Themes and layouts**: 8 built-in themes (Aurora, Midnight, Classic, Forest, Mono, Slate, Scholar, Studio) and
+  7 page layouts (sidebar, classic, banner, profile, academic, compact, cards). Each CV can use any layout with any theme.
   Create your own with the visual theme editor: colors, fonts, corner radius and custom CSS.
 - **Admin UI** (`/admin`): manage several CVs, JSON editor with live preview, theme gallery and editor.
 - **REST API** to automate everything.
@@ -111,12 +112,34 @@ A theme is a small JSON document. Only `id` and `name` are required; everything 
 }
 ```
 
-- `layout`: `sidebar` (two columns with a tinted sidebar), `classic` (centered single column) or `banner`
-  (colored header band).
+- `layout`: the theme's default layout, see [Layouts](#layouts). A CV can override it.
 - Colors, fonts and radius become CSS custom properties (`--accent`, `--font-heading`, ...) used by
   [`static/cv.css`](static/cv.css); `customCss` is appended after it for full control.
 - Built-in themes are read-only: use "Customize" in the theme gallery to start a copy.
 - Preview any theme on any CV with `?theme=<id>`, e.g. `/cv/jane-doe?theme=midnight`.
+
+## Layouts
+
+The layout decides the page structure; the theme decides colors and fonts. Every theme has a default layout,
+and each CV can override it (layout selector in the editor, `layout` field in the API, `set_cv_layout` MCP tool).
+
+| Layout | Description |
+| --- | --- |
+| `sidebar` | Two columns with contact, skills and languages in a tinted sidebar. |
+| `classic` | Single centered column with a classic header; side details at the bottom. |
+| `banner` | Bold colored header band, main column with a sidebar on the right. |
+| `profile` | Full-height colored sidebar holding the photo, name, contact and skills. |
+| `academic` | Dates in a left gutter and sober typography, suited to academic CVs. |
+| `compact` | Dense, smaller type and tight spacing to fit on a single page. |
+| `cards` | Every section in its own card on a tinted background. |
+
+| Profile (Slate) | Academic (Scholar) |
+| --- | --- |
+| ![Profile layout](docs/screenshots/layout-profile.png) | ![Academic layout](docs/screenshots/layout-academic.png) |
+| **Compact** | **Cards (Studio)** |
+| ![Compact layout](docs/screenshots/layout-compact.png) | ![Cards layout](docs/screenshots/layout-cards.png) |
+
+Preview any layout with `?layout=<id>`, e.g. `/cv/jane-doe?layout=compact`, or with the toolbar of a CV page.
 
 ## MCP server (AI agents)
 
@@ -162,7 +185,7 @@ Generic client configuration:
 | `patch_cv` | Apply a JSON Merge Patch (RFC 7396) to the resume. |
 | `add_section_item`, `update_section_item`, `remove_section_item`, `move_section_item` | Edit entries of a list section (`work`, `skills`, ...). |
 | `duplicate_cv` | Copy a CV, e.g. to tailor it for a job offer. |
-| `set_cv_theme` | Change the theme of a CV. |
+| `set_cv_theme`, `set_cv_layout` | Change the theme or the layout of a CV. |
 | `list_themes`, `get_theme`, `save_theme`, `delete_theme` | Manage themes (`save_theme` starts from a base theme, so agents only send what changes). |
 | `get_resume_schema` | Documentation of the CV format with a full example. |
 
@@ -179,17 +202,17 @@ All `/api` routes accept and return JSON and require the token when `CV_API_TOKE
 | Method & path | Description |
 | --- | --- |
 | `GET /api/cvs` | List CVs (summaries). |
-| `POST /api/cvs` | Create: `{ "id"?, "theme"?, "resume"? }` (id derived from `basics.name` when omitted). |
+| `POST /api/cvs` | Create: `{ "id"?, "theme"?, "layout"?, "resume"? }` (id derived from `basics.name` when omitted). |
 | `GET /api/cvs/{id}` | Full document: `{ id, theme, createdAt, updatedAt, resume }`. |
-| `PUT /api/cvs/{id}` | Replace: `{ "resume", "theme"? }`. |
-| `PATCH /api/cvs/{id}` | `{ "theme"?, "resume"? }` where `resume` is a JSON Merge Patch. |
+| `PUT /api/cvs/{id}` | Replace: `{ "resume", "theme"?, "layout"? }`. |
+| `PATCH /api/cvs/{id}` | `{ "theme"?, "layout"?, "resume"? }` where `resume` is a JSON Merge Patch. `"layout": null` goes back to the theme's layout. |
 | `DELETE /api/cvs/{id}` | Delete. |
 | `POST /api/cvs/{id}/duplicate` | Copy: `{ "id"? }`. |
 | `GET /api/themes`, `POST /api/themes` | List / create themes. |
 | `GET` `PUT` `DELETE /api/themes/{id}` | Read, create-or-replace, delete a custom theme. |
-| `POST /api/preview` | Render HTML for `{ "resume"?, "theme"?, "themeData"? }` without saving. |
+| `POST /api/preview` | Render HTML for `{ "resume"?, "theme"?, "themeData"?, "layout"? }` without saving. |
 
-Public routes: `/cv/{id}` (HTML, `?theme=` to preview another theme), `/cv/{id}/resume.json`, `/healthz`.
+Public routes: `/cv/{id}` (HTML, `?theme=` and `?layout=` to preview another theme or layout), `/cv/{id}/resume.json`, `/healthz`.
 
 ```sh
 curl -X PATCH http://localhost:8080/api/cvs/jane-doe \
