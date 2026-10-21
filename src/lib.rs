@@ -3,6 +3,7 @@
 
 pub mod config;
 pub mod error;
+pub mod i18n;
 pub mod mcp;
 pub mod model;
 pub mod render;
