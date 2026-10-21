@@ -52,9 +52,9 @@ Every [release](https://github.com/pmorcrette/cvgenerator/releases) ships a sing
 and Windows:
 
 ```sh
-curl -LO https://github.com/pmorcrette/cvgenerator/releases/download/v0.1.0/cvgenerator-v0.1.0-x86_64-unknown-linux-musl.tar.gz
-tar xzf cvgenerator-v0.1.0-x86_64-unknown-linux-musl.tar.gz
-CV_API_TOKEN=change-me ./cvgenerator-v0.1.0-x86_64-unknown-linux-musl/cvgenerator --data-dir ./data
+curl -LO https://github.com/pmorcrette/cvgenerator/releases/download/0.1.0/cvgenerator-0.1.0-x86_64-unknown-linux-musl.tar.gz
+tar xzf cvgenerator-0.1.0-x86_64-unknown-linux-musl.tar.gz
+CV_API_TOKEN=change-me ./cvgenerator-0.1.0-x86_64-unknown-linux-musl/cvgenerator --data-dir ./data
 ```
 
 Each archive comes with a `.sha256` checksum file.
@@ -254,8 +254,8 @@ pushed on a commit of `master`. The tag must match the version in `Cargo.toml`:
 ```sh
 # bump `version` in Cargo.toml, merge to master, then:
 git checkout master && git pull
-git tag v0.2.0
-git push origin v0.2.0
+git tag 0.2.0
+git push origin 0.2.0
 ```
 
 The workflow runs the tests, builds the binaries for every platform and publishes a GitHub release with the
