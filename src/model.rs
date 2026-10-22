@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::i18n::Lang;
 use crate::theme::Layout;
 
 /// A stored CV: the resume content plus metadata used by the application.
@@ -23,6 +24,10 @@ pub struct CvDocument {
     /// Layout overriding the theme's own; `None` uses the theme layout.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub layout: Option<Layout>,
+    /// Language of the labels added around the content (section titles,
+    /// dates...). The content itself is written by the author.
+    #[serde(default)]
+    pub lang: Lang,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub resume: Resume,
@@ -40,6 +45,7 @@ pub struct CvSummary {
     pub name: String,
     pub label: String,
     pub theme: String,
+    pub lang: Lang,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -50,6 +56,7 @@ impl From<&CvDocument> for CvSummary {
             name: doc.resume.basics.name.clone().unwrap_or_default(),
             label: doc.resume.basics.label.clone().unwrap_or_default(),
             theme: doc.theme.clone(),
+            lang: doc.lang,
             updated_at: doc.updated_at,
         }
     }

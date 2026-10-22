@@ -14,6 +14,7 @@ use serde_json::{Value, json};
 
 use crate::config::Config;
 use crate::error::{Error, Result};
+use crate::i18n::Lang;
 use crate::model::{CvDocument, CvSummary, Resume, double_option};
 use crate::render::{CvPageOptions, Renderer, ThemeChoice};
 use crate::service::{parse_resume, patch_resume};
@@ -86,6 +87,7 @@ pub fn router(state: AppState) -> Router {
             get(get_theme).put(put_theme).delete(delete_theme),
         )
         .route("/preview", post(preview))
+        .route("/example", get(example))
         .route("/auth", get(|| async { StatusCode::NO_CONTENT }));
 
     let protected = Router::new()
@@ -222,9 +224,14 @@ fn admin_page(state: &AppState, template: &str, ctx: minijinja::Value) -> Result
         .iter()
         .map(|l| context! { id => l.id(), name => l.name(), description => l.description() })
         .collect();
+    let langs: Vec<_> = Lang::ALL
+        .iter()
+        .map(|l| context! { code => l.code(), name => l.name() })
+        .collect();
     let ctx = context! {
         auth_required => state.config.api_token().is_some(),
         layouts,
+        langs,
         ..ctx
     };
     Ok(Html(state.renderer.render_admin(template, ctx)?))
@@ -261,6 +268,7 @@ struct CreateCv {
     id: Option<String>,
     theme: Option<String>,
     layout: Option<Layout>,
+    lang: Option<Lang>,
     #[serde(default)]
     resume: Option<Value>,
 }
@@ -270,9 +278,13 @@ async fn create_cv(
     Json(body): Json<CreateCv>,
 ) -> Result<(StatusCode, Json<CvDocument>)> {
     let resume = parse_resume(body.resume.unwrap_or_else(|| json!({})))?;
-    let doc = state
-        .store
-        .create_cv(body.id, resume, body.theme, body.layout)?;
+    let doc = state.store.create_cv(
+        body.id,
+        resume,
+        body.theme,
+        body.layout,
+        body.lang.unwrap_or_default(),
+    )?;
     Ok((StatusCode::CREATED, Json(doc)))
 }
 
@@ -286,6 +298,7 @@ struct ReplaceCv {
     /// Absent: unchanged, `null`: use the theme's layout.
     #[serde(default, deserialize_with = "double_option")]
     layout: Option<Option<Layout>>,
+    lang: Option<Lang>,
     resume: Value,
 }
 
@@ -303,6 +316,9 @@ async fn replace_cv(
         if let Some(layout) = body.layout {
             doc.layout = layout;
         }
+        if let Some(lang) = body.lang {
+            doc.lang = lang;
+        }
         Ok(())
     })?;
     Ok(Json(doc))
@@ -314,6 +330,7 @@ struct PatchCv {
     /// Absent: unchanged, `null`: use the theme's layout.
     #[serde(default, deserialize_with = "double_option")]
     layout: Option<Option<Layout>>,
+    lang: Option<Lang>,
     /// JSON Merge Patch (RFC 7396) applied to the resume.
     resume: Option<Value>,
 }
@@ -332,6 +349,9 @@ async fn patch_cv(
         }
         if let Some(layout) = body.layout {
             doc.layout = layout;
+        }
+        if let Some(lang) = body.lang {
+            doc.lang = lang;
         }
         Ok(())
     })?;
@@ -357,9 +377,13 @@ async fn duplicate_cv(
     let new_id = body
         .and_then(|b| b.0.id)
         .or_else(|| Some(format!("{id}-copy")));
-    let doc = state
-        .store
-        .create_cv(new_id, source.resume, Some(source.theme), source.layout)?;
+    let doc = state.store.create_cv(
+        new_id,
+        source.resume,
+        Some(source.theme),
+        source.layout,
+        source.lang,
+    )?;
     Ok((StatusCode::CREATED, Json(doc)))
 }
 
@@ -417,6 +441,8 @@ struct PreviewRequest {
     theme_data: Option<Theme>,
     /// Layout overriding the theme's one.
     layout: Option<Layout>,
+    /// Language of the labels, English by default.
+    lang: Option<Lang>,
 }
 
 async fn preview(
@@ -425,7 +451,7 @@ async fn preview(
 ) -> Result<Html<String>> {
     let resume = match req.resume {
         Some(value) => parse_resume(value)?,
-        None => example_resume(),
+        None => example_resume_in(req.lang.unwrap_or_default()),
     };
     let theme = match (req.theme_data, req.theme) {
         (Some(theme), _) => {
@@ -440,6 +466,7 @@ async fn preview(
         id: "preview".into(),
         theme: theme.id.clone(),
         layout: req.layout,
+        lang: req.lang.unwrap_or_default(),
         created_at: now,
         updated_at: now,
         resume,
@@ -452,6 +479,23 @@ async fn preview(
 }
 
 pub fn example_resume() -> Resume {
-    serde_json::from_str(include_str!("../examples/jane-doe.json"))
-        .expect("bundled example is valid")
+    example_resume_in(Lang::En)
+}
+
+/// Complete example CV written in `lang`.
+pub fn example_resume_in(lang: Lang) -> Resume {
+    let source = match lang {
+        Lang::En => include_str!("../examples/jane-doe.json"),
+        Lang::Fr => include_str!("../examples/camille-martin.json"),
+    };
+    serde_json::from_str(source).expect("bundled example is valid")
+}
+
+#[derive(Deserialize)]
+struct ExampleQuery {
+    lang: Option<Lang>,
+}
+
+async fn example(Query(query): Query<ExampleQuery>) -> Json<Resume> {
+    Json(example_resume_in(query.lang.unwrap_or_default()))
 }

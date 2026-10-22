@@ -3,6 +3,7 @@ use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
 use cvgenerator::config::{Cli, Command};
+use cvgenerator::i18n::Lang;
 use cvgenerator::storage::Store;
 use cvgenerator::web::{AppState, example_resume, router};
 
@@ -21,7 +22,13 @@ async fn main() -> anyhow::Result<()> {
     let store = Store::open(&config.data_dir)
         .with_context(|| format!("cannot open data directory {}", config.data_dir.display()))?;
     if config.seed_example && store.list_cvs()?.is_empty() {
-        let doc = store.create_cv(Some("jane-doe".into()), example_resume(), None, None)?;
+        let doc = store.create_cv(
+            Some("jane-doe".into()),
+            example_resume(),
+            None,
+            None,
+            Lang::En,
+        )?;
         tracing::info!("created example CV '{}'", doc.id);
     }
     let state = AppState::new(store, config.clone());

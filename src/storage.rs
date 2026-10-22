@@ -11,6 +11,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::error::{Error, Result};
+use crate::i18n::Lang;
 use crate::model::{CvDocument, CvSummary, Resume, is_valid_id, slugify};
 use crate::theme::{Layout, Theme, builtin_themes};
 
@@ -73,6 +74,7 @@ impl Store {
         resume: Resume,
         theme: Option<String>,
         layout: Option<Layout>,
+        lang: Lang,
     ) -> Result<CvDocument> {
         let theme = theme.unwrap_or_else(crate::model::default_theme);
         self.get_theme(&theme)?;
@@ -107,6 +109,7 @@ impl Store {
             id,
             theme,
             layout,
+            lang,
             created_at: now,
             updated_at: now,
             resume,
@@ -266,15 +269,21 @@ mod tests {
         let store = Store::open(dir.path()).unwrap();
 
         let a = store
-            .create_cv(None, resume("Ada Lovelace"), None, None)
+            .create_cv(None, resume("Ada Lovelace"), None, None, Lang::En)
             .unwrap();
         let b = store
-            .create_cv(None, resume("Ada Lovelace"), None, None)
+            .create_cv(None, resume("Ada Lovelace"), None, None, Lang::En)
             .unwrap();
         assert_eq!(a.id, "ada-lovelace");
         assert_eq!(b.id, "ada-lovelace-2");
         assert!(matches!(
-            store.create_cv(Some("ada-lovelace".into()), resume("x"), None, None),
+            store.create_cv(
+                Some("ada-lovelace".into()),
+                resume("x"),
+                None,
+                None,
+                Lang::En
+            ),
             Err(Error::Conflict(_))
         ));
 
@@ -304,7 +313,7 @@ mod tests {
         let store = Store::open(dir.path()).unwrap();
         assert!(matches!(store.get_cv("../secret"), Err(Error::Invalid(_))));
         assert!(matches!(
-            store.create_cv(None, resume("x"), Some("nope".into()), None),
+            store.create_cv(None, resume("x"), Some("nope".into()), None, Lang::En),
             Err(Error::NotFound(_))
         ));
     }
@@ -332,7 +341,13 @@ mod tests {
         );
 
         store
-            .create_cv(None, resume("Bob"), Some("corporate".into()), None)
+            .create_cv(
+                None,
+                resume("Bob"),
+                Some("corporate".into()),
+                None,
+                Lang::En,
+            )
             .unwrap();
         assert!(matches!(
             store.delete_theme("corporate"),

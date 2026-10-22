@@ -213,6 +213,83 @@ async fn layouts() {
 }
 
 #[tokio::test]
+async fn french_cv() {
+    let (app, _dir) = app(None);
+    let (status, body) = send(&app, "GET", "/api/example?lang=fr", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    let resume = json(&body);
+    assert_eq!(resume["basics"]["name"], "Camille Martin");
+
+    let (status, body) = send(
+        &app,
+        "POST",
+        "/api/cvs",
+        Some(json!({ "lang": "fr", "resume": resume })),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    assert_eq!(json(&body)["lang"], "fr");
+
+    let (_, html) = send(&app, "GET", "/cv/camille-martin", None, None).await;
+    assert!(html.contains(r#"<html lang="fr">"#));
+    for label in [
+        "Expérience",
+        "Compétences",
+        "Formation",
+        "Enregistrer en PDF",
+        "Mis à jour en",
+    ] {
+        assert!(html.contains(label), "missing {label}");
+    }
+    assert!(html.contains("mars 2021 – aujourd’hui"));
+    assert!(html.contains("sept. 2017 – févr. 2021"));
+    assert!(!html.contains(">Experience<") && !html.contains("Present"));
+
+    // Duplicates keep the language, PATCH switches it back to English.
+    let (_, body) = send(
+        &app,
+        "POST",
+        "/api/cvs/camille-martin/duplicate",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(json(&body)["lang"], "fr");
+    let (_, body) = send(
+        &app,
+        "PATCH",
+        "/api/cvs/camille-martin",
+        Some(json!({ "lang": "en" })),
+        None,
+    )
+    .await;
+    assert_eq!(json(&body)["lang"], "en");
+    let (_, html) = send(&app, "GET", "/cv/camille-martin", None, None).await;
+    assert!(html.contains(r#"<html lang="en">"#) && html.contains("Mar 2021 – Present"));
+
+    let (status, _) = send(
+        &app,
+        "PATCH",
+        "/api/cvs/camille-martin",
+        Some(json!({ "lang": "xx" })),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+
+    let (_, html) = send(
+        &app,
+        "POST",
+        "/api/preview",
+        Some(json!({ "lang": "fr" })),
+        None,
+    )
+    .await;
+    assert!(html.contains("Camille Martin") && html.contains("Expérience"));
+}
+
+#[tokio::test]
 async fn themes_and_preview() {
     let (app, _dir) = app(None);
     let theme = json!({ "id": "sunset", "name": "Sunset", "layout": "banner", "colors": { "accent": "#f97316" } });

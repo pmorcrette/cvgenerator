@@ -13,7 +13,7 @@
 {%- macro period(item, key="startDate") -%}
 {%- set start = item[key] | date -%}
 {%- set end = item.endDate | date -%}
-{%- if start and end %}{{ start }} – {{ end }}{% elif start %}{{ start }} – Present{% elif end %}{{ end }}{% endif -%}
+{%- if start and end %}{{ start }} – {{ end }}{% elif start %}{{ start }} – {{ t.present }}{% elif end %}{{ end }}{% endif -%}
 {%- endmacro -%}
 
 {%- macro contact(b) -%}
@@ -38,7 +38,7 @@
 
 {%- set b = cv.basics or {} -%}
 <!doctype html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,29 +56,29 @@
 </head>
 <body class="layout-{{ layout }}{% if options.embed %} embed{% endif %}">
 {%- if not options.embed %}
-<nav class="toolbar" aria-label="CV tools">
+<nav class="toolbar" aria-label="{{ t.cv_tools }}">
   {%- if options.themes %}
   {#- A plain GET form: no URL handling in an inline handler, where `URL`
       would resolve to `document.URL` instead of the URL constructor. #}
   <form class="toolbar-theme" method="get" action="/cv/{{ id }}">
     <label>
-      <span class="sr-only">Theme</span>
+      <span class="sr-only">{{ t.theme }}</span>
       <select name="theme" onchange="this.form.submit()">
         {%- for t in options.themes %}<option value="{{ t.id }}"{% if t.id == theme.id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
       </select>
     </label>
     <label>
-      <span class="sr-only">Layout</span>
+      <span class="sr-only">{{ t.layout }}</span>
       <select name="layout" onchange="this.form.submit()">
-        <option value=""{% if not forced_layout %} selected{% endif %}>Default ({{ default_layout }})</option>
+        <option value=""{% if not forced_layout %} selected{% endif %}>{{ t.default_layout }} ({{ default_layout }})</option>
         {%- for l in layouts %}<option value="{{ l.id }}"{% if l.id == forced_layout %} selected{% endif %}>{{ l.name }}</option>{% endfor %}
       </select>
     </label>
-    <noscript><button class="toolbar-btn" type="submit">Apply</button></noscript>
+    <noscript><button class="toolbar-btn" type="submit">{{ t.apply }}</button></noscript>
   </form>
   {%- endif %}
-  <a class="toolbar-btn" href="/cv/{{ id }}/resume.json" download="{{ id }}.json" title="Download JSON Resume">JSON</a>
-  <button class="toolbar-btn primary" type="button" onclick="window.print()" title="Print or save as PDF">Save as PDF</button>
+  <a class="toolbar-btn" href="/cv/{{ id }}/resume.json" download="{{ id }}.json" title="{{ t.download_json }}">JSON</a>
+  <button class="toolbar-btn primary" type="button" onclick="window.print()" title="{{ t.save_pdf_hint }}">{{ t.save_pdf }}</button>
 </nav>
 {%- endif %}
 
@@ -88,7 +88,7 @@
       {%- if b.image %}<img src="{{ b.image | safe_url }}" alt="{{ b.name }}">{% else %}<span>{{ b.name | initials }}</span>{% endif %}
     </div>
     <div class="identity">
-      <h1>{{ b.name or "Your Name" }}</h1>
+      <h1>{{ b.name or t.your_name }}</h1>
       {%- if b.label %}<p class="headline">{{ b.label }}</p>{% endif %}
       <div class="hero-contact">{{ contact(b) }}</div>
     </div>
@@ -97,13 +97,13 @@
   <div class="columns">
     <aside class="side">
       <section class="side-contact">
-        <h2>Contact</h2>
+        <h2>{{ t.contact }}</h2>
         {{ contact(b) }}
       </section>
 
       {%- if cv.skills %}
       <section class="skills">
-        <h2>Skills</h2>
+        <h2>{{ t.skills }}</h2>
         {%- for s in cv.skills %}
         <div class="skill">
           <div class="skill-head"><strong>{{ s.name }}</strong>{% if s.level %}<span>{{ s.level }}</span>{% endif %}</div>
@@ -117,7 +117,7 @@
 
       {%- if cv.languages %}
       <section class="languages">
-        <h2>Languages</h2>
+        <h2>{{ t.languages }}</h2>
         <ul class="plain">
           {%- for l in cv.languages %}
           <li><strong>{{ l.language }}</strong>{% if l.fluency %}<span>{{ l.fluency }}</span>{% endif %}</li>
@@ -128,7 +128,7 @@
 
       {%- if cv.certificates %}
       <section class="certificates">
-        <h2>Certificates</h2>
+        <h2>{{ t.certificates }}</h2>
         <ul class="plain stacked">
           {%- for c in cv.certificates %}
           <li>
@@ -142,7 +142,7 @@
 
       {%- if cv.interests %}
       <section class="interests">
-        <h2>Interests</h2>
+        <h2>{{ t.interests }}</h2>
         {%- for i in cv.interests %}
         <div class="interest"><strong>{{ i.name }}</strong>{{ chips(i.keywords) }}</div>
         {%- endfor %}
@@ -153,14 +153,14 @@
     <main class="main">
       {%- if b.summary %}
       <section class="about">
-        <h2>Profile</h2>
+        <h2>{{ t.profile }}</h2>
         {%- for p in b.summary | paragraphs %}<p>{{ p }}</p>{% endfor %}
       </section>
       {%- endif %}
 
       {%- if cv.work %}
       <section class="timeline">
-        <h2>Experience</h2>
+        <h2>{{ t.experience }}</h2>
         {%- for w in cv.work %}
         <div class="entry">
           <div class="entry-head">
@@ -181,7 +181,7 @@
 
       {%- if cv.projects %}
       <section class="timeline">
-        <h2>Projects</h2>
+        <h2>{{ t.projects }}</h2>
         {%- for p in cv.projects %}
         <div class="entry">
           <div class="entry-head">
@@ -201,7 +201,7 @@
 
       {%- if cv.education %}
       <section class="timeline">
-        <h2>Education</h2>
+        <h2>{{ t.education }}</h2>
         {%- for e in cv.education %}
         <div class="entry">
           <div class="entry-head">
@@ -221,7 +221,7 @@
 
       {%- if cv.volunteer %}
       <section class="timeline">
-        <h2>Volunteering</h2>
+        <h2>{{ t.volunteering }}</h2>
         {%- for v in cv.volunteer %}
         <div class="entry">
           <div class="entry-head">
@@ -240,7 +240,7 @@
 
       {%- if cv.awards %}
       <section class="compact">
-        <h2>Awards</h2>
+        <h2>{{ t.awards }}</h2>
         {%- for a in cv.awards %}
         <div class="entry">
           <div class="entry-head">
@@ -255,7 +255,7 @@
 
       {%- if cv.publications %}
       <section class="compact">
-        <h2>Publications</h2>
+        <h2>{{ t.publications }}</h2>
         {%- for p in cv.publications %}
         <div class="entry">
           <div class="entry-head">
@@ -270,7 +270,7 @@
 
       {%- if cv.references %}
       <section class="references">
-        <h2>References</h2>
+        <h2>{{ t.references }}</h2>
         {%- for r in cv.references %}
         <blockquote>{% for p in r.reference | paragraphs %}<p>{{ p }}</p>{% endfor %}<cite>{{ r.name }}</cite></blockquote>
         {%- endfor %}
@@ -278,7 +278,7 @@
       {%- endif %}
     </main>
   </div>
-  <footer class="sheet-footer">Updated {{ updated_at }}</footer>
+  <footer class="sheet-footer">{{ updated }}</footer>
 </article>
 </body>
 </html>

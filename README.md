@@ -10,6 +10,7 @@ for you through the built-in **MCP server**.
 ## Features
 
 - **Readable CV pages**: clean typography, responsive layout, print-ready A4 output ("Save as PDF").
+- **English and French CVs**: section titles, dates and labels follow the language of each CV.
 - **Themes and layouts**: 8 built-in themes (Aurora, Midnight, Classic, Forest, Mono, Slate, Scholar, Studio) and
   7 page layouts (sidebar, classic, banner, profile, academic, compact, cards). Each CV can use any layout with any theme.
   Create your own with the visual theme editor: colors, fonts, corner radius and custom CSS.
@@ -85,6 +86,18 @@ Every field is optional, and existing JSON Resume files can be imported as-is.
 
 See [`examples/jane-doe.json`](examples/jane-doe.json) for a complete example. Any CV can be downloaded as
 JSON Resume from its page (`/cv/<id>/resume.json`).
+
+## Languages
+
+Each CV has a language (`lang`): `en` (English, default) or `fr` (French). It translates everything the
+application adds around your content: section titles ("Experience" / "Expérience"), dates ("Mar 2021 – Present" /
+"mars 2021 – aujourd’hui"), the toolbar and the footer. Skill and language levels written in French ("Avancé",
+"Langue maternelle"...) also draw the level meter.
+
+Write the content itself in the same language; it is never translated automatically. Pick the language when creating a
+CV (the "Start from the example content" option then uses a French example,
+[`examples/camille-martin.json`](examples/camille-martin.json)), change it later in the editor, or set `lang` through
+the API or the `set_cv_language` MCP tool.
 
 ## Themes
 
@@ -185,9 +198,9 @@ Generic client configuration:
 | `patch_cv` | Apply a JSON Merge Patch (RFC 7396) to the resume. |
 | `add_section_item`, `update_section_item`, `remove_section_item`, `move_section_item` | Edit entries of a list section (`work`, `skills`, ...). |
 | `duplicate_cv` | Copy a CV, e.g. to tailor it for a job offer. |
-| `set_cv_theme`, `set_cv_layout` | Change the theme or the layout of a CV. |
+| `set_cv_theme`, `set_cv_layout`, `set_cv_language` | Change the theme, the layout or the language (`en`, `fr`) of a CV. |
 | `list_themes`, `get_theme`, `save_theme`, `delete_theme` | Manage themes (`save_theme` starts from a base theme, so agents only send what changes). |
-| `get_resume_schema` | Documentation of the CV format with a full example. |
+| `get_resume_schema` | Documentation of the CV format with a full example (in English or French with `lang`). |
 
 The server also exposes every CV as a resource (`cv://<id>`), the format documentation (`cv://schema`), and two
 prompts: `tailor_cv` (adapt a copy of a CV to a job description) and `review_cv`.
@@ -202,15 +215,16 @@ All `/api` routes accept and return JSON and require the token when `CV_API_TOKE
 | Method & path | Description |
 | --- | --- |
 | `GET /api/cvs` | List CVs (summaries). |
-| `POST /api/cvs` | Create: `{ "id"?, "theme"?, "layout"?, "resume"? }` (id derived from `basics.name` when omitted). |
+| `POST /api/cvs` | Create: `{ "id"?, "theme"?, "layout"?, "lang"?, "resume"? }` (id derived from `basics.name` when omitted). |
 | `GET /api/cvs/{id}` | Full document: `{ id, theme, createdAt, updatedAt, resume }`. |
-| `PUT /api/cvs/{id}` | Replace: `{ "resume", "theme"?, "layout"? }`. |
-| `PATCH /api/cvs/{id}` | `{ "theme"?, "layout"?, "resume"? }` where `resume` is a JSON Merge Patch. `"layout": null` goes back to the theme's layout. |
+| `PUT /api/cvs/{id}` | Replace: `{ "resume", "theme"?, "layout"?, "lang"? }`. |
+| `PATCH /api/cvs/{id}` | `{ "theme"?, "layout"?, "lang"?, "resume"? }` where `resume` is a JSON Merge Patch. `"layout": null` goes back to the theme's layout. |
 | `DELETE /api/cvs/{id}` | Delete. |
 | `POST /api/cvs/{id}/duplicate` | Copy: `{ "id"? }`. |
 | `GET /api/themes`, `POST /api/themes` | List / create themes. |
 | `GET` `PUT` `DELETE /api/themes/{id}` | Read, create-or-replace, delete a custom theme. |
-| `POST /api/preview` | Render HTML for `{ "resume"?, "theme"?, "themeData"?, "layout"? }` without saving. |
+| `POST /api/preview` | Render HTML for `{ "resume"?, "theme"?, "themeData"?, "layout"?, "lang"? }` without saving. |
+| `GET /api/example?lang=` | A complete example resume in English (`en`) or French (`fr`). |
 
 Public routes: `/cv/{id}` (HTML, `?theme=` and `?layout=` to preview another theme or layout), `/cv/{id}/resume.json`, `/healthz`.
 
@@ -236,7 +250,8 @@ src/
   main.rs      CLI entry point (serve | mcp)
   config.rs    configuration (flags and environment variables)
   model.rs     CV document and JSON Resume model, merge patch, slugs
-  theme.rs     theme model, validation, built-in themes
+  theme.rs     theme model, validation, built-in themes, layouts
+  i18n.rs      CV languages: translated labels and dates
   storage.rs   JSON file storage for CVs and themes
   service.rs   shared editing operations (merge patch, section edits)
   render.rs    MiniJinja rendering and template filters

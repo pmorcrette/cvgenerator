@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use crate::error::Error;
+use crate::i18n::Lang;
 use crate::model::{CvDocument, CvSummary, SECTIONS};
 use crate::service::{SectionEdit, edit_section, parse_resume, patch_resume};
 use crate::theme::{Layout, Theme};
@@ -26,7 +27,8 @@ const INSTRUCTIONS: &str = "Manage curriculum vitae (CVs) hosted by cvgenerator.
 CV content follows the JSON Resume schema (call get_resume_schema once if unsure). \
 Prefer targeted edits (patch_cv, add/update/remove/move_section_item) over full rewrites, \
 use duplicate_cv to tailor a CV for a specific job without losing the original, \
-and share the returned `url` so humans can see the rendered result.";
+and share the returned `url` so humans can see the rendered result. \
+CVs can be rendered in English or French (`lang`); write the content in the CV's language.";
 
 // ----- JSON-RPC plumbing ------------------------------------------------
 
@@ -208,17 +210,20 @@ impl McpServer {
                     id: Option<String>,
                     theme: Option<String>,
                     layout: Option<Layout>,
+                    lang: Option<Lang>,
                     resume: Option<Value>,
                 }
                 let a: A = parse_args(args)?;
                 let resume = parse_resume(a.resume.unwrap_or_else(|| json!({})))?;
-                self.doc_json(&store.create_cv(a.id, resume, a.theme, a.layout)?)
+                let lang = a.lang.unwrap_or_default();
+                self.doc_json(&store.create_cv(a.id, resume, a.theme, a.layout, lang)?)
             }
             "update_cv" => {
                 #[derive(Deserialize)]
                 struct A {
                     id: String,
                     theme: Option<String>,
+                    lang: Option<Lang>,
                     resume: Option<Value>,
                 }
                 let a: A = parse_args(args)?;
@@ -229,6 +234,9 @@ impl McpServer {
                     }
                     if let Some(theme) = a.theme {
                         doc.theme = theme;
+                    }
+                    if let Some(lang) = a.lang {
+                        doc.lang = lang;
                     }
                     Ok(())
                 })?)
@@ -303,6 +311,7 @@ impl McpServer {
                     source.resume,
                     Some(source.theme),
                     source.layout,
+                    source.lang,
                 )?)
             }
             "delete_cv" => {
@@ -340,6 +349,18 @@ impl McpServer {
                 };
                 self.doc_json(&store.update_cv(&a.id, |doc| {
                     doc.layout = layout;
+                    Ok(())
+                })?)
+            }
+            "set_cv_language" => {
+                #[derive(Deserialize)]
+                struct A {
+                    id: String,
+                    lang: Lang,
+                }
+                let a: A = parse_args(args)?;
+                self.doc_json(&store.update_cv(&a.id, |doc| {
+                    doc.lang = a.lang;
                     Ok(())
                 })?)
             }
@@ -386,11 +407,18 @@ impl McpServer {
                 store.delete_theme(&a.id)?;
                 Ok(json!({ "deleted": a.id }))
             }
-            "get_resume_schema" => Ok(json!({
-                "documentation": RESUME_SCHEMA_DOC,
-                "sections": SECTIONS,
-                "example": crate::web::example_resume()
-            })),
+            "get_resume_schema" => {
+                #[derive(Deserialize)]
+                struct A {
+                    lang: Option<Lang>,
+                }
+                let a: A = parse_args(args)?;
+                Ok(json!({
+                    "documentation": RESUME_SCHEMA_DOC,
+                    "sections": SECTIONS,
+                    "example": crate::web::example_resume_in(a.lang.unwrap_or_default())
+                }))
+            }
             other => Err(Error::Invalid(format!("unknown tool: {other}"))),
         }
     }
@@ -551,6 +579,12 @@ fn tool_definitions() -> Vec<Value> {
     let id = json!({ "type": "string", "description": "CV identifier (lowercase letters, digits, dashes)" });
     let section =
         json!({ "type": "string", "enum": SECTIONS, "description": "List section of the resume" });
+    let lang = json!({
+        "type": "string",
+        "enum": Lang::ALL.iter().map(|l| l.code()).collect::<Vec<_>>(),
+        "description": "Language of the section titles, dates and labels added around the content: \
+                        'en' (English, default) or 'fr' (French). Write the resume content in the same language."
+    });
     let layout_choices: Vec<&str> = std::iter::once("default").chain(layout_ids()).collect();
     let resume = json!({ "type": "object", "description": "Resume content in JSON Resume format (see get_resume_schema)" });
     vec![
@@ -578,6 +612,7 @@ fn tool_definitions() -> Vec<Value> {
                 "id": id,
                 "theme": { "type": "string", "description": "Theme id (see list_themes), default 'aurora'" },
                 "layout": { "type": "string", "enum": layout_ids(), "description": "Layout overriding the theme's one (omit to use the theme layout)" },
+                "lang": lang,
                 "resume": resume
             }),
             &[],
@@ -586,8 +621,8 @@ fn tool_definitions() -> Vec<Value> {
         tool(
             "update_cv",
             "Replace CV content",
-            "Replace the whole resume content and/or change the theme of a CV. Prefer patch_cv or section tools for small edits.",
-            json!({ "id": id, "resume": resume, "theme": { "type": "string" } }),
+            "Replace the whole resume content and/or change the theme or language of a CV. Prefer patch_cv or section tools for small edits.",
+            json!({ "id": id, "resume": resume, "theme": { "type": "string" }, "lang": lang }),
             &["id"],
             destructive.clone(),
         ),
@@ -669,6 +704,15 @@ fn tool_definitions() -> Vec<Value> {
             write.clone(),
         ),
         tool(
+            "set_cv_language",
+            "Set CV language",
+            "Change the language of the section titles, dates and labels of a CV (e.g. 'fr' for a French CV). \
+             This does not translate the content: update it with patch_cv or update_cv if needed.",
+            json!({ "id": id, "lang": lang }),
+            &["id", "lang"],
+            write.clone(),
+        ),
+        tool(
             "list_themes",
             "List themes",
             "List available themes (built-in and custom) with their default layout and accent color, \
@@ -711,8 +755,9 @@ fn tool_definitions() -> Vec<Value> {
         tool(
             "get_resume_schema",
             "Get CV format",
-            "Documentation of the CV content format (JSON Resume) with a complete example.",
-            json!({}),
+            "Documentation of the CV content format (JSON Resume) with a complete example, \
+             written in the requested language.",
+            json!({ "lang": lang }),
             &[],
             read_only,
         ),
@@ -743,6 +788,8 @@ const RESUME_SCHEMA_DOC: &str = r#"# CV format
 
 CVs use the JSON Resume schema (https://jsonresume.org/schema). Every field is optional.
 Dates are ISO 8601 strings: "2024", "2024-03" or "2024-03-15". Omit `endDate` for a current position.
+Write the content in the CV's language (`lang` of the CV: "en" or "fr"); section titles and dates are translated
+automatically, so do not add them to the content.
 Text fields support paragraphs separated by a blank line ("\n\n").
 
 - basics: { name, label (headline), image (URL), email, phone, url, summary,
@@ -944,6 +991,23 @@ mod tests {
             json!({ "id": "grace-navy", "layout": "zigzag" }),
         );
         assert_eq!(err["isError"], true);
+        let cv = call(
+            &server,
+            "set_cv_language",
+            json!({ "id": "grace-navy", "lang": "fr" }),
+        );
+        assert_eq!(cv["structuredContent"]["lang"], "fr");
+        let err = call(
+            &server,
+            "set_cv_language",
+            json!({ "id": "grace-navy", "lang": "klingon" }),
+        );
+        assert_eq!(err["isError"], true);
+        let schema = call(&server, "get_resume_schema", json!({ "lang": "fr" }));
+        assert_eq!(
+            schema["structuredContent"]["example"]["basics"]["name"],
+            "Camille Martin"
+        );
         let themes = call(&server, "list_themes", json!({}));
         assert_eq!(
             themes["structuredContent"]["layouts"]

@@ -35,6 +35,9 @@
     <label class="field"><span>Full name</span><input name="name" required placeholder="Jane Doe" autofocus></label>
     <label class="field"><span>Headline</span><input name="label" placeholder="Senior Software Engineer"></label>
     <label class="field"><span>Theme</span><select name="theme" data-theme-select></select></label>
+    <label class="field"><span>Language</span>
+      <select name="lang">{% for l in langs %}<option value="{{ l.code }}">{{ l.name }}</option>{% endfor %}</select>
+    </label>
     <label class="checkbox"><input type="checkbox" name="example"> Start from the example content</label>
     <p class="form-error" hidden></p>
     <div class="dialog-actions">
